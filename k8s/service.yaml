@@ -1,0 +1,91 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: appcompatcheck-app
+  namespace: appcompatcheck
+  labels:
+    app: appcompatcheck
+    component: app
+  annotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "9090"
+    prometheus.io/path: "/metrics"
+spec:
+  type: ClusterIP
+  ports:
+  - port: 80
+    targetPort: 3000
+    protocol: TCP
+    name: http
+  - port: 9090
+    targetPort: 9090
+    protocol: TCP
+    name: metrics
+  selector:
+    app: appcompatcheck
+    component: app
+  sessionAffinity: None
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres
+  namespace: appcompatcheck
+  labels:
+    app: appcompatcheck
+    component: postgres
+spec:
+  type: ClusterIP
+  ports:
+  - port: 5432
+    targetPort: 5432
+    protocol: TCP
+    name: postgres
+  selector:
+    app: appcompatcheck
+    component: postgres
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis
+  namespace: appcompatcheck
+  labels:
+    app: appcompatcheck
+    component: redis
+spec:
+  type: ClusterIP
+  ports:
+  - port: 6379
+    targetPort: 6379
+    protocol: TCP
+    name: redis
+  selector:
+    app: appcompatcheck
+    component: redis
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: minio
+  namespace: appcompatcheck
+  labels:
+    app: appcompatcheck
+    component: minio
+spec:
+  type: ClusterIP
+  ports:
+  - port: 9000
+    targetPort: 9000
+    protocol: TCP
+    name: api
+  - port: 9001
+    targetPort: 9001
+    protocol: TCP
+    name: console
+  selector:
+    app: appcompatcheck
+    component: minio

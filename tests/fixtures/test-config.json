@@ -1,0 +1,45 @@
+{
+  "name": "test-project",
+  "version": "1.0.0",
+  "description": "Test configuration file for scanning",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "test": "jest",
+    "build": "webpack --mode=production"
+  },
+  "dependencies": {
+    "lodash": "^4.17.15",
+    "express": "^4.18.0",
+    "react": "^18.2.0"
+  },
+  "devDependencies": {
+    "jest": "^29.0.0",
+    "webpack": "^5.74.0"
+  },
+  "engines": {
+    "node": ">=14.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/example/test-project.git"
+  },
+  "keywords": ["test", "compatibility", "scanning"],
+  "author": "Test Author",
+  "license": "MIT",
+  "browserslist": [
+    "> 1%",
+    "last 2 versions",
+    "not dead"
+  ],
+  "eslintConfig": {
+    "extends": ["react-app", "react-app/jest"]
+  },
+  "jest": {
+    "testEnvironment": "jsdom",
+    "setupFilesAfterEnv": ["<rootDir>/src/setupTests.js"]
+  },
+  "babel": {
+    "presets": ["@babel/preset-env", "@babel/preset-react"]
+  }
+}

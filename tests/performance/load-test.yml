@@ -1,0 +1,177 @@
+# Artillery Load Testing Configuration
+config:
+  target: 'http://localhost:3000'
+  phases:
+    # Warm-up phase
+    - duration: 60
+      arrivalRate: 5
+      name: "Warm-up"
+    
+    # Ramp-up phase
+    - duration: 120
+      arrivalRate: 5
+      rampTo: 20
+      name: "Ramp-up"
+    
+    # Sustained load phase
+    - duration: 300
+      arrivalRate: 20
+      name: "Sustained load"
+    
+    # Peak load phase
+    - duration: 120
+      arrivalRate: 20
+      rampTo: 50
+      name: "Peak load"
+    
+    # Cool-down phase
+    - duration: 60
+      arrivalRate: 50
+      rampTo: 5
+      name: "Cool-down"
+
+  # Processor configuration
+  processor: "./tests/performance/processor.js"
+  
+  # Default headers
+  defaults:
+    headers:
+      'Content-Type': 'application/json'
+      'User-Agent': 'Artillery/Load-Test'
+
+  # HTTP configuration
+  http:
+    timeout: 30
+    pool: 10
+    maxSockets: 50
+
+scenarios:
+  # Authentication flow
+  - name: "User Authentication"
+    weight: 20
+    flow:
+      - post:
+          url: "/api/auth/login"
+          json:
+            email: "test@example.com"
+            password: "password123"
+          capture:
+            - json: "$.token"
+              as: "authToken"
+      - get:
+          url: "/api/auth/me"
+          headers:
+            Authorization: "Bearer {{ authToken }}"
+      - post:
+          url: "/api/auth/logout"
+          headers:
+            Authorization: "Bearer {{ authToken }}"
+
+  # Dashboard and analytics
+  - name: "Dashboard Access"
+    weight: 30
+    flow:
+      - function: "authenticateUser"
+      - get:
+          url: "/dashboard"
+          headers:
+            Authorization: "Bearer {{ authToken }}"
+      - get:
+          url: "/api/analytics/dashboard"
+          headers:
+            Authorization: "Bearer {{ authToken }}"
+      - get:
+          url: "/api/scans?limit=10"
+          headers:
+            Authorization: "Bearer {{ authToken }}"
+
+  # Scan operations
+  - name: "Scan Management"
+    weight: 25
+    flow:
+      - function: "authenticateUser"
+      - post:
+          url: "/api/scans"
+          headers:
+            Authorization: "Bearer {{ authToken }}"
+          json:
+            name: "Load Test Scan {{ $randomString() }}"
+            type: "compatibility"
+            description: "Automated load test scan"
+          capture:
+            - json: "$.data.scan.id"
+              as: "scanId"
+      - get:
+          url: "/api/scans/{{ scanId }}"
+          headers:
+            Authorization: "Bearer {{ authToken }}"
+      - patch:
+          url: "/api/scans/{{ scanId }}"
+          headers:
+            Authorization: "Bearer {{ authToken }}"
+          json:
+            description: "Updated description"
+      - delete:
+          url: "/api/scans/{{ scanId }}"
+          headers:
+            Authorization: "Bearer {{ authToken }}"
+
+  # File operations
+  - name: "File Upload"
+    weight: 15
+    flow:
+      - function: "authenticateUser"
+      - function: "createTestScan"
+      - post:
+          url: "/api/scans/{{ scanId }}/files"
+          headers:
+            Authorization: "Bearer {{ authToken }}"
+          formData:
+            files: "@tests/fixtures/test-code.js"
+      - get:
+          url: "/api/scans/{{ scanId }}/files"
+          headers:
+            Authorization: "Bearer {{ authToken }}"
+
+  # API endpoints stress test
+  - name: "API Stress Test"
+    weight: 10
+    flow:
+      - function: "authenticateUser"
+      - loop:
+          - get:
+              url: "/api/health"
+          - get:
+              url: "/api/system/info"
+              headers:
+                Authorization: "Bearer {{ authToken }}"
+          - get:
+              url: "/api/organizations"
+              headers:
+                Authorization: "Bearer {{ authToken }}"
+        count: 5
+
+# Performance thresholds
+expect:
+  - http.response_time:
+      p95: 2000  # 95th percentile should be under 2 seconds
+      p99: 5000  # 99th percentile should be under 5 seconds
+  - http.response_time.max: 10000  # Max response time should be under 10 seconds
+  - http.codes.200: 90  # At least 90% of requests should return 200
+  - http.codes.4xx: 5   # Less than 5% client errors
+  - http.codes.5xx: 1   # Less than 1% server errors
+
+# Plugins for extended functionality
+plugins:
+  expect: {}
+  metrics-by-endpoint:
+    useOnlyRequestNames: true
+  
+# Custom metrics
+metrics:
+  - name: "custom.login_success_rate"
+    unit: "percent"
+  - name: "custom.scan_creation_time"
+    unit: "ms"
+  - name: "custom.file_upload_time"
+    unit: "ms"

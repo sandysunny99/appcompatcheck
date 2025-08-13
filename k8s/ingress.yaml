@@ -1,0 +1,129 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: appcompatcheck-ingress
+  namespace: appcompatcheck
+  labels:
+    app: appcompatcheck
+    component: ingress
+  annotations:
+    # NGINX Ingress Controller annotations
+    nginx.ingress.kubernetes.io/rewrite-target: /
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/proxy-body-size: "50m"
+    nginx.ingress.kubernetes.io/proxy-connect-timeout: "600"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "600"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "600"
+    nginx.ingress.kubernetes.io/proxy-buffer-size: "16k"
+    nginx.ingress.kubernetes.io/proxy-buffers-number: "8"
+    
+    # Rate limiting
+    nginx.ingress.kubernetes.io/rate-limit-connections: "10"
+    nginx.ingress.kubernetes.io/rate-limit-requests-per-minute: "100"
+    nginx.ingress.kubernetes.io/rate-limit-burst-multiplier: "5"
+    
+    # Security headers
+    nginx.ingress.kubernetes.io/configuration-snippet: |
+      add_header X-Content-Type-Options "nosniff" always;
+      add_header X-Frame-Options "SAMEORIGIN" always;
+      add_header X-XSS-Protection "1; mode=block" always;
+      add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+      add_header Permissions-Policy "geolocation=(), microphone=(), camera=()" always;
+      add_header Strict-Transport-Security "max-age=31536000; includeSubDomains; preload" always;
+    
+    # CORS headers
+    nginx.ingress.kubernetes.io/cors-allow-origin: "https://appcompatcheck.com"
+    nginx.ingress.kubernetes.io/cors-allow-methods: "GET, POST, PUT, DELETE, PATCH, OPTIONS"
+    nginx.ingress.kubernetes.io/cors-allow-headers: "DNT,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Range,Authorization"
+    nginx.ingress.kubernetes.io/enable-cors: "true"
+    
+    # SSL/TLS configuration
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    
+    # Caching
+    nginx.ingress.kubernetes.io/server-snippet: |
+      location ~* \.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot)$ {
+        expires 1y;
+        add_header Cache-Control "public, immutable";
+        access_log off;
+      }
+      
+      location ~* \.(html|htm|xml|txt|json)$ {
+        expires 1h;
+        add_header Cache-Control "public, no-transform";
+      }
+    
+spec:
+  ingressClassName: nginx
+  tls:
+  - hosts:
+    - appcompatcheck.com
+    - www.appcompatcheck.com
+    secretName: appcompatcheck-tls
+  rules:
+  - host: appcompatcheck.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: appcompatcheck-app
+            port:
+              number: 80
+      - path: /api
+        pathType: Prefix
+        backend:
+          service:
+            name: appcompatcheck-app
+            port:
+              number: 80
+      - path: /metrics
+        pathType: Prefix
+        backend:
+          service:
+            name: appcompatcheck-app
+            port:
+              number: 9090
+  - host: www.appcompatcheck.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: appcompatcheck-app
+            port:
+              number: 80
+
+---
+# Redirect from www to non-www
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: appcompatcheck-redirect
+  namespace: appcompatcheck
+  labels:
+    app: appcompatcheck
+    component: redirect
+  annotations:
+    nginx.ingress.kubernetes.io/permanent-redirect: "https://appcompatcheck.com$request_uri"
+    nginx.ingress.kubernetes.io/permanent-redirect-code: "301"
+spec:
+  ingressClassName: nginx
+  tls:
+  - hosts:
+    - www.appcompatcheck.com
+    secretName: appcompatcheck-tls
+  rules:
+  - host: www.appcompatcheck.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: appcompatcheck-app
+            port:
+              number: 80

@@ -1,0 +1,336 @@
+{
+  "dashboard": {
+    "id": null,
+    "title": "AppCompatCheck Production Dashboard",
+    "tags": ["appcompatcheck", "production", "monitoring"],
+    "style": "dark",
+    "timezone": "browser",
+    "editable": true,
+    "hideControls": false,
+    "graphTooltip": 1,
+    "time": {
+      "from": "now-1h",
+      "to": "now"
+    },
+    "timepicker": {
+      "refresh_intervals": ["5s", "10s", "30s", "1m", "5m", "15m", "30m", "1h", "2h", "1d"],
+      "time_options": ["5m", "15m", "1h", "6h", "12h", "24h", "2d", "7d", "30d"]
+    },
+    "refresh": "30s",
+    "version": 1,
+    "panels": [
+      {
+        "id": 1,
+        "title": "Application Overview",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "up{job=\"appcompatcheck\"}",
+            "legendFormat": "Application Status",
+            "refId": "A"
+          },
+          {
+            "expr": "rate(http_requests_total{job=\"appcompatcheck\"}[5m])",
+            "legendFormat": "Request Rate",
+            "refId": "B"
+          },
+          {
+            "expr": "histogram_quantile(0.95, rate(http_request_duration_seconds_bucket{job=\"appcompatcheck\"}[5m]))",
+            "legendFormat": "95th Percentile Response Time",
+            "refId": "C"
+          },
+          {
+            "expr": "(rate(http_requests_total{job=\"appcompatcheck\",status=~\"5..\"}[5m]) / rate(http_requests_total{job=\"appcompatcheck\"}[5m])) * 100",
+            "legendFormat": "Error Rate %",
+            "refId": "D"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short",
+            "min": 0,
+            "thresholds": {
+              "steps": [
+                {"color": "green", "value": null},
+                {"color": "red", "value": 80}
+              ]
+            }
+          }
+        },
+        "gridPos": {"h": 8, "w": 24, "x": 0, "y": 0}
+      },
+      {
+        "id": 2,
+        "title": "HTTP Request Rate",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(http_requests_total{job=\"appcompatcheck\"}[5m])",
+            "legendFormat": "Total Requests/sec",
+            "refId": "A"
+          },
+          {
+            "expr": "rate(http_requests_total{job=\"appcompatcheck\",status=~\"2..\"}[5m])",
+            "legendFormat": "2xx Requests/sec",
+            "refId": "B"
+          },
+          {
+            "expr": "rate(http_requests_total{job=\"appcompatcheck\",status=~\"4..\"}[5m])",
+            "legendFormat": "4xx Requests/sec",
+            "refId": "C"
+          },
+          {
+            "expr": "rate(http_requests_total{job=\"appcompatcheck\",status=~\"5..\"}[5m])",
+            "legendFormat": "5xx Requests/sec",
+            "refId": "D"
+          }
+        ],
+        "yAxes": [
+          {"label": "Requests per second", "min": 0},
+          {"show": false}
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8}
+      },
+      {
+        "id": 3,
+        "title": "Response Time Distribution",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.50, rate(http_request_duration_seconds_bucket{job=\"appcompatcheck\"}[5m]))",
+            "legendFormat": "50th percentile",
+            "refId": "A"
+          },
+          {
+            "expr": "histogram_quantile(0.90, rate(http_request_duration_seconds_bucket{job=\"appcompatcheck\"}[5m]))",
+            "legendFormat": "90th percentile",
+            "refId": "B"
+          },
+          {
+            "expr": "histogram_quantile(0.95, rate(http_request_duration_seconds_bucket{job=\"appcompatcheck\"}[5m]))",
+            "legendFormat": "95th percentile",
+            "refId": "C"
+          },
+          {
+            "expr": "histogram_quantile(0.99, rate(http_request_duration_seconds_bucket{job=\"appcompatcheck\"}[5m]))",
+            "legendFormat": "99th percentile",
+            "refId": "D"
+          }
+        ],
+        "yAxes": [
+          {"label": "Seconds", "min": 0},
+          {"show": false}
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8}
+      },
+      {
+        "id": 4,
+        "title": "Database Performance",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "pg_stat_database_tup_fetched{datname=\"appcompatcheck\"}",
+            "legendFormat": "Tuples Fetched",
+            "refId": "A"
+          },
+          {
+            "expr": "pg_stat_database_tup_inserted{datname=\"appcompatcheck\"}",
+            "legendFormat": "Tuples Inserted",
+            "refId": "B"
+          },
+          {
+            "expr": "pg_stat_database_tup_updated{datname=\"appcompatcheck\"}",
+            "legendFormat": "Tuples Updated",
+            "refId": "C"
+          },
+          {
+            "expr": "pg_stat_database_tup_deleted{datname=\"appcompatcheck\"}",
+            "legendFormat": "Tuples Deleted",
+            "refId": "D"
+          }
+        ],
+        "yAxes": [
+          {"label": "Operations", "min": 0},
+          {"show": false}
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 16}
+      },
+      {
+        "id": 5,
+        "title": "Redis Performance",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "redis_commands_processed_total",
+            "legendFormat": "Commands Processed",
+            "refId": "A"
+          },
+          {
+            "expr": "redis_keyspace_hits_total",
+            "legendFormat": "Cache Hits",
+            "refId": "B"
+          },
+          {
+            "expr": "redis_keyspace_misses_total",
+            "legendFormat": "Cache Misses",
+            "refId": "C"
+          }
+        ],
+        "yAxes": [
+          {"label": "Operations", "min": 0},
+          {"show": false}
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 16}
+      },
+      {
+        "id": 6,
+        "title": "System Resources",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "(100 - (avg(irate(node_cpu_seconds_total{mode=\"idle\"}[5m])) * 100))",
+            "legendFormat": "CPU Usage %",
+            "refId": "A"
+          },
+          {
+            "expr": "((node_memory_MemTotal_bytes - node_memory_MemAvailable_bytes) / node_memory_MemTotal_bytes) * 100",
+            "legendFormat": "Memory Usage %",
+            "refId": "B"
+          },
+          {
+            "expr": "((node_filesystem_size_bytes - node_filesystem_free_bytes) / node_filesystem_size_bytes) * 100",
+            "legendFormat": "Disk Usage %",
+            "refId": "C"
+          }
+        ],
+        "yAxes": [
+          {"label": "Percentage", "min": 0, "max": 100},
+          {"show": false}
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 24}
+      },
+      {
+        "id": 7,
+        "title": "Business Metrics",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(scans_total[5m])",
+            "legendFormat": "Scans per second",
+            "refId": "A"
+          },
+          {
+            "expr": "rate(reports_generated_total[5m])",
+            "legendFormat": "Reports per second",
+            "refId": "B"
+          },
+          {
+            "expr": "rate(notifications_sent_total[5m])",
+            "legendFormat": "Notifications per second",
+            "refId": "C"
+          },
+          {
+            "expr": "active_sessions",
+            "legendFormat": "Active Sessions",
+            "refId": "D"
+          }
+        ],
+        "yAxes": [
+          {"label": "Rate", "min": 0},
+          {"show": false}
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 24}
+      },
+      {
+        "id": 8,
+        "title": "Error Tracking",
+        "type": "table",
+        "targets": [
+          {
+            "expr": "topk(10, rate(http_requests_total{job=\"appcompatcheck\",status=~\"[45]..\"}[5m]))",
+            "format": "table",
+            "refId": "A"
+          }
+        ],
+        "transformations": [
+          {
+            "id": "organize",
+            "options": {
+              "excludeByName": {},
+              "indexByName": {},
+              "renameByName": {
+                "method": "Method",
+                "path": "Path",
+                "status": "Status",
+                "Value": "Error Rate"
+              }
+            }
+          }
+        ],
+        "gridPos": {"h": 8, "w": 24, "x": 0, "y": 32}
+      },
+      {
+        "id": 9,
+        "title": "Active Alerts",
+        "type": "table",
+        "targets": [
+          {
+            "expr": "ALERTS{job=\"appcompatcheck\"}",
+            "format": "table",
+            "refId": "A"
+          }
+        ],
+        "transformations": [
+          {
+            "id": "organize",
+            "options": {
+              "excludeByName": {},
+              "indexByName": {},
+              "renameByName": {
+                "alertname": "Alert",
+                "severity": "Severity",
+                "summary": "Summary",
+                "alertstate": "State"
+              }
+            }
+          }
+        ],
+        "gridPos": {"h": 8, "w": 24, "x": 0, "y": 40}
+      }
+    ],
+    "templating": {
+      "list": [
+        {
+          "name": "instance",
+          "type": "query",
+          "query": "label_values(up{job=\"appcompatcheck\"}, instance)",
+          "refresh": 1,
+          "includeAll": true,
+          "multi": true
+        },
+        {
+          "name": "interval",
+          "type": "interval",
+          "query": "30s,1m,5m,10m,30m,1h",
+          "refresh": 2,
+          "current": {
+            "text": "5m",
+            "value": "5m"
+          }
+        }
+      ]
+    },
+    "annotations": {
+      "list": [
+        {
+          "name": "Deployments",
+          "datasource": "prometheus",
+          "expr": "up{job=\"appcompatcheck\"}",
+          "titleFormat": "Deployment",
+          "textFormat": "New version deployed",
+          "iconColor": "blue"
+        }
+      ]
+    }
+  }
+}

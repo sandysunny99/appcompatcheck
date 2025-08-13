@@ -1,0 +1,220 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: appcompatcheck-sa
+  namespace: appcompatcheck
+  labels:
+    app: appcompatcheck
+    component: rbac
+automountServiceAccountToken: true
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: appcompatcheck-role
+  namespace: appcompatcheck
+  labels:
+    app: appcompatcheck
+    component: rbac
+rules:
+# ConfigMap permissions (for dynamic configuration updates)
+- apiGroups: [""]
+  resources: ["configmaps"]
+  verbs: ["get", "list", "watch"]
+  resourceNames: ["appcompatcheck-config"]
+
+# Secret permissions (for credential rotation)
+- apiGroups: [""]
+  resources: ["secrets"]
+  verbs: ["get", "list", "watch"]
+  resourceNames: ["appcompatcheck-secrets"]
+
+# Pod permissions (for health checks and metrics)
+- apiGroups: [""]
+  resources: ["pods"]
+  verbs: ["get", "list", "watch"]
+
+# Service permissions (for service discovery)
+- apiGroups: [""]
+  resources: ["services"]
+  verbs: ["get", "list", "watch"]
+
+# Endpoint permissions (for load balancing)
+- apiGroups: [""]
+  resources: ["endpoints"]
+  verbs: ["get", "list", "watch"]
+
+# Event permissions (for logging and monitoring)
+- apiGroups: [""]
+  resources: ["events"]
+  verbs: ["create", "patch"]
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: appcompatcheck-rolebinding
+  namespace: appcompatcheck
+  labels:
+    app: appcompatcheck
+    component: rbac
+subjects:
+- kind: ServiceAccount
+  name: appcompatcheck-sa
+  namespace: appcompatcheck
+roleRef:
+  kind: Role
+  name: appcompatcheck-role
+  apiGroup: rbac.authorization.k8s.io
+
+---
+# Network Policy for enhanced security
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: appcompatcheck-network-policy
+  namespace: appcompatcheck
+  labels:
+    app: appcompatcheck
+    component: security
+spec:
+  podSelector:
+    matchLabels:
+      app: appcompatcheck
+  policyTypes:
+  - Ingress
+  - Egress
+  
+  # Allow ingress traffic
+  ingress:
+  # Allow traffic from ingress controller
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: ingress-nginx
+    ports:
+    - protocol: TCP
+      port: 3000
+  
+  # Allow traffic from monitoring (Prometheus)
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: monitoring
+    ports:
+    - protocol: TCP
+      port: 9090
+  
+  # Allow inter-pod communication within namespace
+  - from:
+    - podSelector:
+        matchLabels:
+          app: appcompatcheck
+    ports:
+    - protocol: TCP
+      port: 3000
+    - protocol: TCP
+      port: 9090
+  
+  # Allow egress traffic
+  egress:
+  # Allow DNS resolution
+  - to: []
+    ports:
+    - protocol: UDP
+      port: 53
+    - protocol: TCP
+      port: 53
+  
+  # Allow communication with PostgreSQL
+  - to:
+    - podSelector:
+        matchLabels:
+          app: appcompatcheck
+          component: postgres
+    ports:
+    - protocol: TCP
+      port: 5432
+  
+  # Allow communication with Redis
+  - to:
+    - podSelector:
+        matchLabels:
+          app: appcompatcheck
+          component: redis
+    ports:
+    - protocol: TCP
+      port: 6379
+  
+  # Allow communication with MinIO
+  - to:
+    - podSelector:
+        matchLabels:
+          app: appcompatcheck
+          component: minio
+    ports:
+    - protocol: TCP
+      port: 9000
+  
+  # Allow HTTPS outbound (for external APIs)
+  - to: []
+    ports:
+    - protocol: TCP
+      port: 443
+  
+  # Allow HTTP outbound (for external APIs that don't support HTTPS)
+  - to: []
+    ports:
+    - protocol: TCP
+      port: 80
+  
+  # Allow SMTP outbound
+  - to: []
+    ports:
+    - protocol: TCP
+      port: 587
+    - protocol: TCP
+      port: 465
+    - protocol: TCP
+      port: 25
+
+---
+# Pod Security Policy (if PSP is enabled in cluster)
+apiVersion: policy/v1beta1
+kind: PodSecurityPolicy
+metadata:
+  name: appcompatcheck-psp
+  labels:
+    app: appcompatcheck
+    component: security
+spec:
+  privileged: false
+  allowPrivilegeEscalation: false
+  requiredDropCapabilities:
+    - ALL
+  volumes:
+    - 'configMap'
+    - 'emptyDir'
+    - 'projected'
+    - 'secret'
+    - 'downwardAPI'
+    - 'persistentVolumeClaim'
+  hostNetwork: false
+  hostIPC: false
+  hostPID: false
+  runAsUser:
+    rule: 'MustRunAsNonRoot'
+  supplementalGroups:
+    rule: 'MustRunAs'
+    ranges:
+      - min: 1001
+        max: 1001
+  fsGroup:
+    rule: 'MustRunAs'
+    ranges:
+      - min: 1001
+        max: 1001
+  readOnlyRootFilesystem: true
+  seLinux:
+    rule: 'RunAsAny'

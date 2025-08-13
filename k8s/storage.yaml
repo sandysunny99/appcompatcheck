@@ -1,0 +1,276 @@
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: fast-ssd
+  labels:
+    app: appcompatcheck
+    component: storage
+provisioner: kubernetes.io/no-provisioner  # Change this based on your cloud provider
+parameters:
+  type: pd-ssd  # Google Cloud example, adjust for your provider
+  replication-type: regional-pd
+allowVolumeExpansion: true
+reclaimPolicy: Retain
+volumeBindingMode: WaitForFirstConsumer
+
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: appcompatcheck-data-pvc
+  namespace: appcompatcheck
+  labels:
+    app: appcompatcheck
+    component: storage
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 10Gi
+  storageClassName: fast-ssd
+
+---
+# MinIO StatefulSet for object storage
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: minio
+  namespace: appcompatcheck
+  labels:
+    app: appcompatcheck
+    component: minio
+spec:
+  serviceName: minio
+  replicas: 1
+  selector:
+    matchLabels:
+      app: appcompatcheck
+      component: minio
+  template:
+    metadata:
+      labels:
+        app: appcompatcheck
+        component: minio
+    spec:
+      securityContext:
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+      containers:
+      - name: minio
+        image: minio/minio:RELEASE.2024-01-01T16-36-33Z
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 9000
+          name: api
+        - containerPort: 9001
+          name: console
+        env:
+        - name: MINIO_ACCESS_KEY
+          valueFrom:
+            secretKeyRef:
+              name: appcompatcheck-secrets
+              key: S3_ACCESS_KEY
+        - name: MINIO_SECRET_KEY
+          valueFrom:
+            secretKeyRef:
+              name: appcompatcheck-secrets
+              key: S3_SECRET_KEY
+        - name: MINIO_BROWSER_REDIRECT_URL
+          value: "https://appcompatcheck.com/minio"
+        args:
+        - server
+        - /data
+        - --console-address
+        - ":9001"
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "100m"
+          limits:
+            memory: "1Gi"
+            cpu: "500m"
+        livenessProbe:
+          httpGet:
+            path: /minio/health/live
+            port: 9000
+            scheme: HTTP
+          initialDelaySeconds: 30
+          periodSeconds: 30
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /minio/health/ready
+            port: 9000
+            scheme: HTTP
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          timeoutSeconds: 3
+          failureThreshold: 3
+        volumeMounts:
+        - name: minio-data
+          mountPath: /data
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: false
+          runAsNonRoot: true
+          runAsUser: 1000
+          runAsGroup: 1000
+  volumeClaimTemplates:
+  - metadata:
+      name: minio-data
+      labels:
+        app: appcompatcheck
+        component: minio
+    spec:
+      accessModes:
+      - ReadWriteOnce
+      resources:
+        requests:
+          storage: 50Gi
+      storageClassName: fast-ssd
+
+---
+# Init Job to create MinIO buckets
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: minio-bucket-init
+  namespace: appcompatcheck
+  labels:
+    app: appcompatcheck
+    component: init
+spec:
+  template:
+    spec:
+      restartPolicy: OnFailure
+      containers:
+      - name: minio-client
+        image: minio/mc:RELEASE.2024-01-01T05-03-17Z
+        env:
+        - name: MINIO_ACCESS_KEY
+          valueFrom:
+            secretKeyRef:
+              name: appcompatcheck-secrets
+              key: S3_ACCESS_KEY
+        - name: MINIO_SECRET_KEY
+          valueFrom:
+            secretKeyRef:
+              name: appcompatcheck-secrets
+              key: S3_SECRET_KEY
+        command:
+        - /bin/bash
+        - -c
+        - |
+          # Wait for MinIO to be ready
+          until mc config host add minio http://minio:9000 $MINIO_ACCESS_KEY $MINIO_SECRET_KEY; do
+            echo "Waiting for MinIO to be ready..."
+            sleep 5
+          done
+          
+          # Create buckets if they don't exist
+          mc mb minio/appcompat-storage --ignore-existing
+          mc mb minio/appcompat-backups --ignore-existing
+          mc mb minio/appcompat-reports --ignore-existing
+          mc mb minio/appcompat-uploads --ignore-existing
+          
+          # Set bucket policies for public access to certain paths
+          mc anonymous set public minio/appcompat-storage/public
+          
+          # Create lifecycle policy for backups (delete after 90 days)
+          cat > /tmp/backup-lifecycle.json << 'EOF'
+          {
+            "Rules": [
+              {
+                "ID": "DeleteOldBackups",
+                "Status": "Enabled",
+                "Filter": {
+                  "Prefix": "database-backups/"
+                },
+                "Expiration": {
+                  "Days": 90
+                }
+              }
+            ]
+          }
+          EOF
+          
+          mc ilm import minio/appcompat-backups < /tmp/backup-lifecycle.json
+          
+          echo "MinIO bucket initialization completed successfully"
+
+---
+# Backup CronJob
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: database-backup
+  namespace: appcompatcheck
+  labels:
+    app: appcompatcheck
+    component: backup
+spec:
+  schedule: "0 2 * * *"  # Daily at 2 AM
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          restartPolicy: OnFailure
+          containers:
+          - name: postgres-backup
+            image: postgres:16-alpine
+            env:
+            - name: PGPASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: appcompatcheck-secrets
+                  key: POSTGRES_PASSWORD
+            - name: MINIO_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: appcompatcheck-secrets
+                  key: S3_ACCESS_KEY
+            - name: MINIO_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: appcompatcheck-secrets
+                  key: S3_SECRET_KEY
+            command:
+            - /bin/bash
+            - -c
+            - |
+              # Install MinIO client
+              apk add --no-cache curl
+              curl -O https://dl.min.io/client/mc/release/linux-amd64/mc
+              chmod +x mc
+              mv mc /usr/local/bin/
+              
+              # Configure MinIO client
+              mc config host add minio http://minio:9000 $MINIO_ACCESS_KEY $MINIO_SECRET_KEY
+              
+              # Create backup
+              BACKUP_FILE="database-backup-$(date +%Y%m%d-%H%M%S).sql"
+              pg_dump -h postgres -U appcompat -d appcompatcheck > /tmp/$BACKUP_FILE
+              
+              # Compress backup
+              gzip /tmp/$BACKUP_FILE
+              
+              # Upload to MinIO
+              mc cp /tmp/$BACKUP_FILE.gz minio/appcompat-backups/database-backups/$BACKUP_FILE.gz
+              
+              # Clean up local file
+              rm /tmp/$BACKUP_FILE.gz
+              
+              echo "Database backup completed: $BACKUP_FILE.gz"
+            resources:
+              requests:
+                memory: "128Mi"
+                cpu: "100m"
+              limits:
+                memory: "512Mi"
+                cpu: "500m"
