@@ -1,17 +1,7 @@
-import type { NextConfig } from 'next'
-
-const nextConfig: NextConfig = {
-  // Enable experimental features for React 19 and Next.js 15
-  experimental: {
-    turbo: {
-      rules: {
-        '*.svg': {
-          loaders: ['@svgr/webpack'],
-          as: '*.js',
-        },
-      },
-    },
-  },
+/** @type {import('next').NextConfig} */
+const nextConfig = {
+  // Enable experimental features for Next.js 14 with React 18
+  reactStrictMode: true,
 
   // TypeScript configuration
   typescript: {
@@ -162,4 +152,4 @@ const nextConfig: NextConfig = {
   }),
 }
 
-export default nextConfig
+module.exports = nextConfig

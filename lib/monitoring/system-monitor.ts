@@ -671,4 +671,4 @@ export class MetricsCollector {
   }
 }
 
-export { SystemMonitor, MetricsCollector };
+export { MetricsCollector };

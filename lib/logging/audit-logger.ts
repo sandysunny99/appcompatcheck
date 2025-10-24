@@ -651,4 +651,4 @@ export class ApplicationLogger {
 
 // Export singleton instance
 export const auditLogger = AuditLogger.getInstance();
-export { AuditLogger, ApplicationLogger };
+export { ApplicationLogger };

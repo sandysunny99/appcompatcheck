@@ -1,1 +1,92 @@
-import { requireAuth } from '@/lib/auth/session';\nimport { FileUpload } from '@/components/file-upload';\nimport { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';\n\nexport default async function UploadPage() {\n  const session = await requireAuth();\n\n  return (\n    <div className=\"container mx-auto px-4 py-8\">\n      <div className=\"max-w-4xl mx-auto\">\n        <div className=\"mb-8\">\n          <h1 className=\"text-3xl font-bold text-gray-900 mb-2\">\n            Upload Security Data\n          </h1>\n          <p className=\"text-gray-600\">\n            Upload your security tool logs or compatibility data for analysis.\n          </p>\n        </div>\n\n        <div className=\"grid gap-6\">\n          <FileUpload \n            onUploadComplete={(result) => {\n              console.log('Upload completed:', result);\n            }}\n            onUploadError={(error) => {\n              console.error('Upload error:', error);\n            }}\n          />\n\n          <Card>\n            <CardHeader>\n              <CardTitle>File Format Requirements</CardTitle>\n              <CardDescription>\n                Please ensure your files meet the following requirements for optimal processing.\n              </CardDescription>\n            </CardHeader>\n            <CardContent className=\"space-y-4\">\n              <div>\n                <h3 className=\"font-semibold text-sm mb-2\">Security Tool Logs (JSON Format)</h3>\n                <pre className=\"bg-gray-100 p-3 rounded text-xs overflow-x-auto\">\n{`[\n  {\n    \"timestamp\": \"2024-01-15T10:30:00Z\",\n    \"tool\": \"SonarQube\",\n    \"severity\": \"high\",\n    \"category\": \"security_hotspot\",\n    \"message\": \"SQL injection vulnerability detected\",\n    \"details\": {\n      \"file\": \"login.php\",\n      \"line\": 42,\n      \"rule\": \"php:S3649\"\n    }\n  }\n]`}\n                </pre>\n              </div>\n              \n              <div>\n                <h3 className=\"font-semibold text-sm mb-2\">Compatibility Data (CSV Format)</h3>\n                <pre className=\"bg-gray-100 p-3 rounded text-xs overflow-x-auto\">\n{`application,version,security_tool,tool_version,compatibility_status,issues,severity,recommendations,last_tested\nMyApp,2.1.0,SonarQube,9.8,compatible,,low,\"Update to latest version\",2024-01-15\nMyApp,2.1.0,OWASP ZAP,2.14,incompatible,\"Authentication bypass\",high,\"Configure custom authentication\",2024-01-14`}\n                </pre>\n              </div>\n\n              <div className=\"border-t pt-4\">\n                <h3 className=\"font-semibold text-sm mb-2\">Supported File Types</h3>\n                <ul className=\"text-sm text-gray-600 space-y-1\">\n                  <li>• JSON files (.json) - Structured security tool output</li>\n                  <li>• CSV files (.csv) - Tabular compatibility data</li>\n                  <li>• Maximum file size: 50MB</li>\n                  <li>• UTF-8 encoding recommended</li>\n                </ul>\n              </div>\n\n              <div className=\"border-t pt-4\">\n                <h3 className=\"font-semibold text-sm mb-2\">Security Notes</h3>\n                <ul className=\"text-sm text-gray-600 space-y-1\">\n                  <li>• All uploaded files are scanned for security threats</li>\n                  <li>• Files are stored securely and accessible only to your organization</li>\n                  <li>• Temporary files are automatically cleaned up after processing</li>\n                  <li>• Invalid or suspicious content is automatically rejected</li>\n                </ul>\n              </div>\n            </CardContent>\n          </Card>\n        </div>\n      </div>\n    </div>\n  );\n}
+import { requireAuth } from '@/lib/auth/session';
+import { FileUpload } from '@/components/file-upload';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+
+export default async function UploadPage() {
+  const session = await requireAuth();
+
+  return (
+    <div className="container mx-auto px-4 py-8">
+      <div className="max-w-4xl mx-auto">
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">
+            Upload Security Data
+          </h1>
+          <p className="text-gray-600">
+            Upload your security tool logs or compatibility data for analysis.
+          </p>
+        </div>
+
+        <div className="grid gap-6">
+          <FileUpload 
+            onUploadComplete={(result) => {
+              console.log('Upload completed:', result);
+            }}
+            onUploadError={(error) => {
+              console.error('Upload error:', error);
+            }}
+          />
+
+          <Card>
+            <CardHeader>
+              <CardTitle>File Format Requirements</CardTitle>
+              <CardDescription>
+                Please ensure your files meet the following requirements for optimal processing.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div>
+                <h3 className="font-semibold text-sm mb-2">Security Tool Logs (JSON Format)</h3>
+                <pre className="bg-gray-100 p-3 rounded text-xs overflow-x-auto">
+{`[
+  {
+    "timestamp": "2024-01-15T10:30:00Z",
+    "tool": "SonarQube",
+    "severity": "high",
+    "category": "security_hotspot",
+    "message": "SQL injection vulnerability detected",
+    "details": {
+      "file": "login.php",
+      "line": 42,
+      "rule": "php:S3649"
+    }
+  }
+]`}
+                </pre>
+              </div>
+              
+              <div>
+                <h3 className="font-semibold text-sm mb-2">Compatibility Data (CSV Format)</h3>
+                <pre className="bg-gray-100 p-3 rounded text-xs overflow-x-auto">
+{`application,version,security_tool,tool_version,compatibility_status,issues,severity,recommendations,last_tested
+MyApp,2.1.0,SonarQube,9.8,compatible,,low,"Update to latest version",2024-01-15
+MyApp,2.1.0,OWASP ZAP,2.14,incompatible,"Authentication bypass",high,"Configure custom authentication",2024-01-14`}
+                </pre>
+              </div>
+
+              <div className="border-t pt-4">
+                <h3 className="font-semibold text-sm mb-2">Supported File Types</h3>
+                <ul className="text-sm text-gray-600 space-y-1">
+                  <li>• JSON files (.json) - Structured security tool output</li>
+                  <li>• CSV files (.csv) - Tabular compatibility data</li>
+                  <li>• Maximum file size: 50MB</li>
+                  <li>• UTF-8 encoding recommended</li>
+                </ul>
+              </div>
+
+              <div className="border-t pt-4">
+                <h3 className="font-semibold text-sm mb-2">Security Notes</h3>
+                <ul className="text-sm text-gray-600 space-y-1">
+                  <li>• All uploaded files are scanned for security threats</li>
+                  <li>• Files are stored securely and accessible only to your organization</li>
+                  <li>• Temporary files are automatically cleaned up after processing</li>
+                  <li>• Invalid or suspicious content is automatically rejected</li>
+                </ul>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    </div>
+  );
+}

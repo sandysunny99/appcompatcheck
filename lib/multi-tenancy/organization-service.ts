@@ -37,7 +37,7 @@ export interface CreateOrganizationData {
     maxScansPerMonth?: number;
     maxFileSize?: number;
     allowedFileTypes?: string[];
-    enforceTwo Factor?: boolean;
+    enforceTwoFactor?: boolean;
   };
 }
 
@@ -116,7 +116,7 @@ export class OrganizationService {
         maxScansPerMonth: data.settings?.maxScansPerMonth || (data.plan === OrganizationPlan.FREE ? 10 : 100),
         maxFileSize: data.settings?.maxFileSize || 10485760, // 10MB
         allowedFileTypes: data.settings?.allowedFileTypes || ['json', 'csv'],
-        enforceTwo Factor: data.settings?.enforceTwo Factor || false,
+        enforceTwoFactor: data.settings?.enforceTwoFactor || false,
       });
 
       // Initialize usage tracking for current month

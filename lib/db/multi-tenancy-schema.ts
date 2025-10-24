@@ -86,7 +86,7 @@ export const organizationSettings = pgTable('organization_settings', {
   id: serial('id').primaryKey(),
   organizationId: integer('organization_id').notNull().references(() => organizations.id).unique(),
   // Security settings
-  enforceTwo Factor: boolean('enforce_two_factor').notNull().default(false),
+  enforceTwoFactor: boolean('enforce_two_factor').notNull().default(false),
   sessionTimeout: integer('session_timeout').notNull().default(3600), // seconds
   passwordPolicy: json('password_policy'), // Password complexity rules
   allowedDomains: json('allowed_domains'), // Email domains for auto-join

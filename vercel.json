@@ -1,0 +1,15 @@
+{
+  "buildCommand": "npm install --legacy-peer-deps && npm run build",
+  "installCommand": "npm install --legacy-peer-deps",
+  "framework": "nextjs",
+  "regions": ["iad1"],
+  "env": {
+    "NPM_CONFIG_LEGACY_PEER_DEPS": "true"
+  },
+  "build": {
+    "env": {
+      "NPM_CONFIG_LEGACY_PEER_DEPS": "true",
+      "NEXT_TELEMETRY_DISABLED": "1"
+    }
+  }
+}
