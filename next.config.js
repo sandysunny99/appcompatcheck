@@ -143,13 +143,10 @@ const nextConfig = {
     },
   },
 
-  // Development server configuration
-  ...(process.env.NODE_ENV === 'development' && {
-    devIndicators: {
-      buildActivity: true,
-      buildActivityPosition: 'bottom-right',
-    },
-  }),
+  // Allow cross-origin requests in development
+  allowedDevOrigins: process.env.NODE_ENV === 'development' 
+    ? ['3000-5e95f2683bef-web.clackypaas.com']
+    : [],
 }
 
 module.exports = nextConfig
