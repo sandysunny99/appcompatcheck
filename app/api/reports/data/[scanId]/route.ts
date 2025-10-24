@@ -3,7 +3,7 @@ import { getSession } from '@/lib/auth/session';
 import { hasPermission, Permission } from '@/lib/auth/permissions';
 import { db } from '@/lib/db/drizzle';
 import { 
-  scanSessions, 
+  scans, 
   scanResults, 
   compatibilityRules, 
   users, 
@@ -38,15 +38,15 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     const [scanSession] = await db
       .select({
         // Scan session data
-        id: scanSessions.id,
-        sessionId: scanSessions.sessionId,
-        fileName: scanSessions.fileName,
-        status: scanSessions.status,
-        createdAt: scanSessions.createdAt,
-        completedAt: scanSessions.completedAt,
-        totalChecks: scanSessions.totalChecks,
-        completedChecks: scanSessions.completedChecks,
-        riskScore: scanSessions.riskScore,
+        id: scans.id,
+        sessionId: scans.sessionId,
+        fileName: scans.fileName,
+        status: scans.status,
+        createdAt: scans.createdAt,
+        completedAt: scans.completedAt,
+        totalChecks: scans.totalChecks,
+        completedChecks: scans.completedChecks,
+        riskScore: scans.riskScore,
         
         // User data
         userFirstName: users.firstName,
@@ -57,18 +57,18 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
         organizationName: organizations.name,
         organizationDomain: organizations.domain,
       })
-      .from(scanSessions)
-      .leftJoin(users, eq(scanSessions.userId, users.id))
+      .from(scans)
+      .leftJoin(users, eq(scans.userId, users.id))
       .leftJoin(organizations, eq(users.organizationId, organizations.id))
       .where(
         and(
-          eq(scanSessions.id, scanId),
+          eq(scans.id, scanId),
           session.user.organizationId
             ? or(
-                eq(scanSessions.userId, session.user.id),
-                eq(scanSessions.organizationId, session.user.organizationId)
+                eq(scans.userId, session.user.id),
+                eq(scans.organizationId, session.user.organizationId)
               )
-            : eq(scanSessions.userId, session.user.id)
+            : eq(scans.userId, session.user.id)
         )
       )
       .limit(1);

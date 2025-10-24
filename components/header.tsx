@@ -310,10 +310,10 @@ export function Header() {
           </div>
           <nav className="flex items-center space-x-2">
             <Button asChild variant="ghost" size="sm">
-              <Link href="/auth/login">Log in</Link>
+              <Link href="/sign-in">Log in</Link>
             </Button>
             <Button asChild size="sm">
-              <Link href="/auth/register">
+              <Link href="/sign-up">
                 Sign up
                 <ArrowRight className="ml-2 h-4 w-4" />
               </Link>

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getSession } from '@/lib/auth/session';
 import { hasPermission, Permission } from '@/lib/auth/permissions';
 import { db } from '@/lib/db/drizzle';
-import { users, organizations, scanSessions } from '@/lib/db/schema';
+import { users, organizations, scans } from '@/lib/db/schema';
 import { eq, and, or, desc, like, count, sql } from 'drizzle-orm';
 import { logActivity } from '@/lib/db/activity';
 import bcrypt from 'bcryptjs';

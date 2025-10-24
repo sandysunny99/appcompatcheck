@@ -275,21 +275,21 @@ export class WebSocketManager {
   private async getScanStatus(scanId: number, userData: SocketData) {
     try {
       const { db } = await import('@/lib/db/drizzle');
-      const { scanSessions } = await import('@/lib/db/schema');
+      const { scans } = await import('@/lib/db/schema');
       const { eq, and, or } = await import('drizzle-orm');
       
       const [scan] = await db
         .select()
-        .from(scanSessions)
+        .from(scans)
         .where(
           and(
-            eq(scanSessions.id, scanId),
+            eq(scans.id, scanId),
             userData.organizationId
               ? or(
-                  eq(scanSessions.userId, userData.userId),
-                  eq(scanSessions.organizationId, userData.organizationId)
+                  eq(scans.userId, userData.userId),
+                  eq(scans.organizationId, userData.organizationId)
                 )
-              : eq(scanSessions.userId, userData.userId)
+              : eq(scans.userId, userData.userId)
           )
         )
         .limit(1);

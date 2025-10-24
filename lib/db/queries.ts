@@ -4,7 +4,7 @@ import {
   activityLogs,
   users,
   organizations,
-  scanSessions,
+  scans,
   scanResults,
   compatibilityRules,
   fileUploads,
@@ -198,18 +198,18 @@ export async function getUserOrganization(userId: number) {
 // Dashboard statistics
 export async function getDashboardStats(userId: number, organizationId?: number) {
   const whereClause = organizationId
-    ? eq(scanSessions.organizationId, organizationId)
-    : eq(scanSessions.userId, userId);
+    ? eq(scans.organizationId, organizationId)
+    : eq(scans.userId, userId);
 
   const [totalScans] = await db
     .select({ count: count() })
-    .from(scanSessions)
+    .from(scans)
     .where(whereClause);
 
   const [completedScans] = await db
     .select({ count: count() })
-    .from(scanSessions)
-    .where(and(whereClause, eq(scanSessions.status, 'completed')));
+    .from(scans)
+    .where(and(whereClause, eq(scans.status, 'completed')));
 
   const [totalReports] = await db
     .select({ count: count() })
@@ -236,26 +236,26 @@ export async function getDashboardStats(userId: number, organizationId?: number)
 // Recent scans for dashboard
 export async function getRecentScans(userId: number, organizationId?: number, limit: number = 5) {
   const whereClause = organizationId
-    ? eq(scanSessions.organizationId, organizationId)
-    : eq(scanSessions.userId, userId);
+    ? eq(scans.organizationId, organizationId)
+    : eq(scans.userId, userId);
 
   return await db
     .select({
-      id: scanSessions.id,
-      sessionId: scanSessions.sessionId,
-      name: scanSessions.name,
-      status: scanSessions.status,
-      riskScore: scanSessions.riskScore,
-      totalChecks: scanSessions.totalChecks,
-      completedChecks: scanSessions.completedChecks,
-      failedChecks: scanSessions.failedChecks,
-      createdAt: scanSessions.createdAt,
+      id: scans.id,
+      sessionId: scans.sessionId,
+      name: scans.name,
+      status: scans.status,
+      riskScore: scans.riskScore,
+      totalChecks: scans.totalChecks,
+      completedChecks: scans.completedChecks,
+      failedChecks: scans.failedChecks,
+      createdAt: scans.createdAt,
       userName: users.name,
       userEmail: users.email,
     })
-    .from(scanSessions)
-    .leftJoin(users, eq(scanSessions.userId, users.id))
+    .from(scans)
+    .leftJoin(users, eq(scans.userId, users.id))
     .where(whereClause)
-    .orderBy(desc(scanSessions.createdAt))
+    .orderBy(desc(scans.createdAt))
     .limit(limit);
 }

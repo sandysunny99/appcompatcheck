@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { requireAuth, Permission, hasPermission } from '@/lib/auth/session';
 import { db } from '@/lib/db/drizzle';
 import {
-  scanSessions,
+  scans,
   scanResults,
   compatibilityRules,
   fileUploads,
@@ -82,7 +82,7 @@ export async function POST(request: NextRequest) {
     // Create scan session
     const sessionId = crypto.randomUUID();
     const [scanSession] = await db
-      .insert(scanSessions)
+      .insert(scans)
       .values({
         sessionId,
         userId: session.user.id,
@@ -171,24 +171,24 @@ export async function GET(request: NextRequest) {
 
     let whereClause;
     if (scanId) {
-      whereClause = eq(scanSessions.id, parseInt(scanId));
+      whereClause = eq(scans.id, parseInt(scanId));
     } else if (sessionId) {
-      whereClause = eq(scanSessions.sessionId, sessionId);
+      whereClause = eq(scans.sessionId, sessionId);
     } else {
       // Get all scans for user/organization
       whereClause = session.user.organizationId
         ? or(
-            eq(scanSessions.userId, session.user.id),
-            eq(scanSessions.organizationId, session.user.organizationId)
+            eq(scans.userId, session.user.id),
+            eq(scans.organizationId, session.user.organizationId)
           )
-        : eq(scanSessions.userId, session.user.id);
+        : eq(scans.userId, session.user.id);
     }
 
     const scans = await db
       .select()
-      .from(scanSessions)
+      .from(scans)
       .where(whereClause)
-      .orderBy(desc(scanSessions.createdAt))
+      .orderBy(desc(scans.createdAt))
       .limit(limit)
       .offset(offset);
 
@@ -247,12 +247,12 @@ async function processScanInBackground(
   try {
     // Update scan status to running
     await db
-      .update(scanSessions)
+      .update(scans)
       .set({
         status: ScanStatus.RUNNING,
         startedAt: new Date(),
       })
-      .where(eq(scanSessions.id, scanSessionId));
+      .where(eq(scans.id, scanSessionId));
 
     // Load compatibility rules
     const rules = await db
@@ -284,11 +284,11 @@ async function processScanInBackground(
 
     // Update scan with total checks
     await db
-      .update(scanSessions)
+      .update(scans)
       .set({
         totalChecks: processResult.validRows * rules.length,
       })
-      .where(eq(scanSessions.id, scanSessionId));
+      .where(eq(scans.id, scanSessionId));
 
     // Run compatibility analysis
     const analysisResults = await analysisEngine.analyzeData(
@@ -322,7 +322,7 @@ async function processScanInBackground(
 
     // Update scan status to completed
     await db
-      .update(scanSessions)
+      .update(scans)
       .set({
         status: ScanStatus.COMPLETED,
         completedAt: new Date(),
@@ -330,7 +330,7 @@ async function processScanInBackground(
         failedChecks,
         riskScore,
       })
-      .where(eq(scanSessions.id, scanSessionId));
+      .where(eq(scans.id, scanSessionId));
 
     // Log scan completion
     await logActivity({
@@ -356,12 +356,12 @@ async function processScanInBackground(
 
     // Update scan status to failed
     await db
-      .update(scanSessions)
+      .update(scans)
       .set({
         status: ScanStatus.FAILED,
         completedAt: new Date(),
       })
-      .where(eq(scanSessions.id, scanSessionId));
+      .where(eq(scans.id, scanSessionId));
 
     // Log scan failure
     await logActivity({
