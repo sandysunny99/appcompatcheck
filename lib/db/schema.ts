@@ -254,6 +254,27 @@ export const webhooks = pgTable(
   })
 )
 
+// Enums
+export enum UserRole {
+  USER = 'user',
+  ADMIN = 'admin',
+  ORG_ADMIN = 'org_admin',
+  MANAGER = 'manager',
+}
+
+export enum ActivityType {
+  SIGN_IN = 'SIGN_IN',
+  SIGN_UP = 'SIGN_UP',
+  SIGN_OUT = 'SIGN_OUT',
+  UPDATE_PASSWORD = 'UPDATE_PASSWORD',
+  DELETE_ACCOUNT = 'DELETE_ACCOUNT',
+  UPDATE_ACCOUNT = 'UPDATE_ACCOUNT',
+  SCAN_CREATED = 'SCAN_CREATED',
+  SCAN_COMPLETED = 'SCAN_COMPLETED',
+  SCAN_FAILED = 'SCAN_FAILED',
+  FILE_UPLOADED = 'FILE_UPLOADED',
+}
+
 // Type exports for TypeScript
 export type User = typeof users.$inferSelect
 export type NewUser = typeof users.$inferInsert

@@ -5,9 +5,6 @@ import {
   users,
   organizations,
   scans,
-  scanResults,
-  compatibilityRules,
-  fileUploads,
   reports,
   notifications,
   apiKeys,
@@ -220,16 +217,17 @@ export async function getDashboardStats(userId: number, organizationId?: number)
         : eq(reports.userId, userId)
     );
 
-  const [totalRules] = await db
-    .select({ count: count() })
-    .from(compatibilityRules)
-    .where(eq(compatibilityRules.isActive, true));
+  // TODO: Add compatibilityRules table to schema.ts
+  // const [totalRules] = await db
+  //   .select({ count: count() })
+  //   .from(compatibilityRules)
+  //   .where(eq(compatibilityRules.isActive, true));
 
   return {
     totalScans: totalScans.count,
     completedScans: completedScans.count,
     totalReports: totalReports.count,
-    totalRules: totalRules.count,
+    totalRules: 0, // Placeholder until compatibilityRules table is added
   };
 }
 
