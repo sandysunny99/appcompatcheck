@@ -12,34 +12,25 @@ import {
 } from 'drizzle-orm/pg-core'
 import { sql } from 'drizzle-orm'
 
-// Users table
+// Users table - Updated to match existing database structure
 export const users = pgTable(
   'users',
   {
-    id: varchar('id', { length: 32 }).primaryKey(),
+    id: integer('id').primaryKey(),
+    name: varchar('name', { length: 100 }),
     email: varchar('email', { length: 255 }).notNull().unique(),
-    password: text('password').notNull(),
-    firstName: varchar('first_name', { length: 100 }).notNull(),
-    lastName: varchar('last_name', { length: 100 }).notNull(),
-    avatar: text('avatar'),
+    passwordHash: text('password_hash').notNull(),
     role: varchar('role', { length: 50 }).notNull().default('user'),
-    organizationId: varchar('organization_id', { length: 32 }),
-    emailVerified: timestamp('email_verified'),
-    verificationToken: text('verification_token'),
-    verificationExpires: timestamp('verification_expires'),
-    passwordResetToken: text('password_reset_token'),
-    passwordResetExpires: timestamp('password_reset_expires'),
+    organizationId: integer('organization_id'),
     isActive: boolean('is_active').notNull().default(true),
-    lastLogin: timestamp('last_login'),
-    preferences: jsonb('preferences').default({}),
+    lastLoginAt: timestamp('last_login_at'),
     createdAt: timestamp('created_at').notNull().defaultNow(),
     updatedAt: timestamp('updated_at').notNull().defaultNow(),
+    deletedAt: timestamp('deleted_at'),
   },
   (table) => ({
     emailIdx: uniqueIndex('users_email_idx').on(table.email),
-    orgIdx: index('users_organization_idx').on(table.organizationId),
-    verificationTokenIdx: index('users_verification_token_idx').on(table.verificationToken),
-    passwordResetTokenIdx: index('users_password_reset_token_idx').on(table.passwordResetToken),
+    orgIdx: index('users_org_idx').on(table.organizationId),
   })
 )
 
