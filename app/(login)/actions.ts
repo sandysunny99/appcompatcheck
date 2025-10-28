@@ -21,6 +21,7 @@ import {
   validatedAction,
   validatedActionWithUser
 } from '@/lib/auth/middleware';
+import { sendWelcomeEmail, sendPasswordResetEmail } from '@/lib/email';
 
 async function logActivity(
   userId: number,
@@ -134,6 +135,11 @@ export const signUp = validatedAction(signUpSchema, async (data, formData) => {
         confirmPassword
       };
     }
+    
+    // Send welcome email (don't await to avoid blocking)
+    sendWelcomeEmail(createdUser.email, createdUser.name || 'User').catch(err => 
+      console.error('Failed to send welcome email:', err)
+    );
     
     await Promise.all([
       logActivity(createdUser.id, ActivityType.SIGN_UP),
@@ -319,8 +325,14 @@ export const forgotPassword = validatedAction(
         user.id.toString()
       );
 
-      // TODO: Send email with reset link
-      // For now, we'll just log it (in production, integrate with email service)
+      // Send password reset email (don't await to avoid blocking)
+      sendPasswordResetEmail(
+        user.email,
+        user.name || 'User',
+        resetToken
+      ).catch(err => console.error('Failed to send password reset email:', err));
+      
+      // Log reset link for development
       console.log(`Password reset token for ${email}: ${resetToken}`);
       console.log(
         `Reset link: ${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/reset-password?token=${resetToken}`

@@ -16,7 +16,7 @@ const emailConfig = {
 let transporter: nodemailer.Transporter | null = null
 
 try {
-  transporter = nodemailer.createTransporter(emailConfig)
+  transporter = nodemailer.createTransport(emailConfig)
 } catch (error) {
   console.error('Failed to create email transporter:', error)
 }
@@ -28,10 +28,6 @@ type EmailTemplate =
   | 'verification'
   | 'password-reset'
   | 'welcome'
-  | 'scan-complete'
-  | 'security-alert'
-  | 'invitation'
-  | 'notification'
 
 /**
  * Email template data interface
@@ -43,7 +39,7 @@ interface EmailTemplateData {
 /**
  * Email templates
  */
-const emailTemplates = {
+const emailTemplates: Record<EmailTemplate, { subject: string; html: (data: any) => string }> = {
   verification: {
     subject: 'Verify Your Email Address - AppCompatCheck',
     html: (data: { verificationUrl: string; firstName: string }) => `
@@ -288,7 +284,7 @@ export async function sendPasswordResetEmail(
   firstName: string,
   resetToken: string
 ): Promise<boolean> {
-  const resetUrl = `${process.env.NEXT_PUBLIC_APP_URL}/auth/reset-password?token=${resetToken}`
+  const resetUrl = `${process.env.NEXT_PUBLIC_APP_URL}/reset-password?token=${resetToken}`
   
   return sendTemplatedEmail(email, 'password-reset', {
     resetUrl,
