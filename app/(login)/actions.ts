@@ -86,7 +86,9 @@ export const signIn = validatedAction(signInSchema, async (data, formData) => {
     logActivity(user.id, ActivityType.SIGN_IN)
   ]);
 
-  redirect('/');
+  // Get redirect parameter from form data, default to home page
+  const redirectTo = formData.get('redirect') as string || '/';
+  redirect(redirectTo);
 });
 
 const signUpSchema = z.object({

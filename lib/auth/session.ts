@@ -112,14 +112,8 @@ export async function setSession(
   // Store session in Redis
   await sessionManager.createSession(sessionId, sessionData);
 
-  // Create JWT token with sessionId
-  const tokenPayload = {
-    sessionId,
-    userId: user.id,
-    expires: expiresInOneDay.toISOString(),
-  };
-  
-  const encryptedSession = await signToken(tokenPayload);
+  // Create JWT token with full session data
+  const encryptedSession = await signToken(sessionData);
   
   // Set HTTP-only cookie
   (await cookies()).set('session', encryptedSession, {

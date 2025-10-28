@@ -16,7 +16,7 @@ export default async function InvitePage({ params }: InvitePageProps) {
 
   if (!session?.user) {
     // Redirect to login with return URL
-    redirect(`/auth/login?callbackUrl=${encodeURIComponent(`/invite/${token}`)}`);
+    redirect(`/sign-in?callbackUrl=${encodeURIComponent(`/invite/${token}`)}`);
   }
 
   return (

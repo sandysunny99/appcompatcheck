@@ -71,7 +71,7 @@ export function hasPermission(
   session: SessionData | null,
   permission: Permission
 ): boolean {
-  if (!session) return false;
+  if (!session || !session.user || !session.user.role) return false;
   const rolePermissions = ROLE_PERMISSIONS[session.user.role] || [];
   return rolePermissions.includes(permission);
 }
@@ -99,7 +99,7 @@ export function canAccessResource(
   resource: string,
   action: 'read' | 'write' | 'delete'
 ): boolean {
-  if (!session) return false;
+  if (!session || !session.user) return false;
   
   // Map resource and action to permission
   const permissionMap: Record<string, Record<string, Permission>> = {

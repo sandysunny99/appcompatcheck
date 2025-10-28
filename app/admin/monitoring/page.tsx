@@ -3,13 +3,13 @@ import { redirect } from 'next/navigation';
 import { getSession } from '@/lib/auth/session';
 import { hasPermission, Permission } from '@/lib/auth/permissions';
 import SystemDashboard from '@/components/monitoring/system-dashboard';
-import { LoadingSpinner } from '@/components/ui/loading';
+import { Loading } from '@/components/ui/loading';
 
 export default async function MonitoringPage() {
   const session = await getSession();
   
   if (!session?.user) {
-    redirect('/auth/login');
+    redirect('/sign-in');
   }
 
   // Check if user has admin system permission

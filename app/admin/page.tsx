@@ -9,7 +9,7 @@ export default async function AdminPage() {
   const session = await getSession();
   
   if (!session?.user) {
-    redirect('/auth/login');
+    redirect('/sign-in');
   }
 
   // Check if user has admin system permission

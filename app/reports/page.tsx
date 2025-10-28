@@ -3,16 +3,16 @@ import { redirect } from 'next/navigation';
 import { getSession } from '@/lib/auth/session';
 import { hasPermission, Permission } from '@/lib/auth/permissions';
 import { ReportsDashboard } from '@/components/reports/ReportsDashboard';
-import { LoadingSpinner } from '@/components/ui/loading';
+import { Loading } from '@/components/ui/loading';
 
 export default async function ReportsPage() {
   const session = await getSession();
   
   if (!session?.user) {
-    redirect('/auth/login');
+    redirect('/sign-in');
   }
 
-  if (!hasPermission(session.user.role, Permission.REPORT_READ)) {
+  if (!hasPermission(session, Permission.REPORT_READ)) {
     redirect('/dashboard');
   }
 

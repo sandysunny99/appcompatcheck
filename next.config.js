@@ -84,14 +84,9 @@ const nextConfig = {
   async redirects() {
     return [
       {
-        source: '/dashboard',
-        destination: '/dashboard/overview',
-        permanent: true,
-      },
-      {
         source: '/admin',
         destination: '/admin/users',
-        permanent: true,
+        permanent: false,
       },
     ]
   },
