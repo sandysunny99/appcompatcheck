@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge'
 import { ThemeControls } from '@/components/theme-controls'
 import { Header } from '@/components/header'
 import { Footer } from '@/components/footer'
+import { getUser } from '@/lib/db/queries'
 
 export const metadata: Metadata = {
   title: 'Enterprise Compatibility Analysis Platform',
@@ -80,10 +81,12 @@ const testimonials = [
   }
 ]
 
-export default function HomePage() {
+export default async function HomePage() {
+  const user = await getUser();
+  
   return (
     <div className="flex min-h-screen flex-col">
-      <Header />
+      <Header user={user} />
       
       <main className="flex-1">
         {/* Hero Section */}

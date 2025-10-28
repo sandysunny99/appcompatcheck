@@ -19,8 +19,18 @@ import {
   SheetTitle,
   SheetTrigger,
 } from '@/components/ui/sheet'
-import { Menu, Code, Shield, Users, BarChart3, Globe, ArrowRight } from 'lucide-react'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
+import { Menu, Code, Shield, Users, BarChart3, Globe, ArrowRight, LogOut, Settings, User as UserIcon } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { User } from '@/lib/db/schema'
+import { signOut } from '@/app/(login)/actions'
 
 const features = [
   {
@@ -122,8 +132,16 @@ const ListItem = React.forwardRef<
 })
 ListItem.displayName = 'ListItem'
 
-export function Header() {
+interface HeaderProps {
+  user?: User | null;
+}
+
+export function Header({ user }: HeaderProps = {}) {
   const [isOpen, setIsOpen] = React.useState(false)
+
+  const handleSignOut = async () => {
+    await signOut();
+  };
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -312,15 +330,68 @@ export function Header() {
             <span className="hidden md:block" />
           </div>
           <nav className="flex items-center space-x-2">
-            <Button asChild variant="ghost" size="sm">
-              <Link href="/sign-in">Log in</Link>
-            </Button>
-            <Button asChild size="sm">
-              <Link href="/sign-up">
-                Sign up
-                <ArrowRight className="ml-2 h-4 w-4" />
-              </Link>
-            </Button>
+            {user ? (
+              <>
+                <Button asChild variant="ghost" size="sm">
+                  <Link href="/upload">Upload</Link>
+                </Button>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="sm" className="flex items-center gap-2">
+                      <UserIcon className="h-4 w-4" />
+                      {user.name || user.email}
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-56">
+                    <DropdownMenuLabel>
+                      <div className="flex flex-col space-y-1">
+                        <p className="text-sm font-medium">{user.name || 'Account'}</p>
+                        <p className="text-xs text-muted-foreground">{user.email}</p>
+                      </div>
+                    </DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem asChild>
+                      <Link href="/dashboard" className="cursor-pointer">
+                        <BarChart3 className="mr-2 h-4 w-4" />
+                        Dashboard
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link href="/reports" className="cursor-pointer">
+                        <Shield className="mr-2 h-4 w-4" />
+                        Reports
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link href="/settings" className="cursor-pointer">
+                        <Settings className="mr-2 h-4 w-4" />
+                        Settings
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem
+                      className="cursor-pointer text-destructive focus:text-destructive"
+                      onClick={handleSignOut}
+                    >
+                      <LogOut className="mr-2 h-4 w-4" />
+                      Log out
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </>
+            ) : (
+              <>
+                <Button asChild variant="ghost" size="sm">
+                  <Link href="/sign-in">Log in</Link>
+                </Button>
+                <Button asChild size="sm">
+                  <Link href="/sign-up">
+                    Sign up
+                    <ArrowRight className="ml-2 h-4 w-4" />
+                  </Link>
+                </Button>
+              </>
+            )}
           </nav>
         </div>
       </div>

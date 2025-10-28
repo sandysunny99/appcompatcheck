@@ -7,18 +7,43 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { CircleIcon, Loader2 } from 'lucide-react';
-import { signIn, signUp } from './actions';
+import { resetPassword } from './actions';
 import { ActionState } from '@/lib/auth/middleware';
 
-export function Login({ mode = 'signin' }: { mode?: 'signin' | 'signup' }) {
+export function ResetPasswordForm() {
   const searchParams = useSearchParams();
-  const redirect = searchParams.get('redirect');
-  const priceId = searchParams.get('priceId');
-  const inviteId = searchParams.get('inviteId');
+  const token = searchParams.get('token') || '';
+  
   const [state, formAction, pending] = useActionState<ActionState, FormData>(
-    mode === 'signin' ? signIn : signUp,
+    resetPassword,
     { error: '' }
   );
+
+  if (!token) {
+    return (
+      <div className="min-h-[100dvh] flex flex-col justify-center py-12 px-4 sm:px-6 lg:px-8 bg-background">
+        <div className="sm:mx-auto sm:w-full sm:max-w-md">
+          <div className="flex justify-center">
+            <CircleIcon className="h-12 w-12 text-primary" />
+          </div>
+          <h2 className="mt-6 text-center text-3xl font-extrabold text-foreground">
+            Invalid Reset Link
+          </h2>
+          <p className="mt-2 text-center text-sm text-muted-foreground">
+            This password reset link is invalid or has expired.
+          </p>
+          <div className="mt-6 text-center">
+            <Link
+              href="/forgot-password"
+              className="text-primary hover:underline"
+            >
+              Request a new reset link
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-[100dvh] flex flex-col justify-center py-12 px-4 sm:px-6 lg:px-8 bg-background">
@@ -27,101 +52,75 @@ export function Login({ mode = 'signin' }: { mode?: 'signin' | 'signup' }) {
           <CircleIcon className="h-12 w-12 text-primary" />
         </div>
         <h2 className="mt-6 text-center text-3xl font-extrabold text-foreground">
-          {mode === 'signin'
-            ? 'Sign in to your account'
-            : 'Create your account'}
+          Set New Password
         </h2>
+        <p className="mt-2 text-center text-sm text-muted-foreground">
+          Enter your new password below.
+        </p>
       </div>
 
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
         <form className="space-y-6" action={formAction}>
-          <input type="hidden" name="redirect" value={redirect || ''} />
-          <input type="hidden" name="priceId" value={priceId || ''} />
-          <input type="hidden" name="inviteId" value={inviteId || ''} />
-          <div>
-            <Label
-              htmlFor="email"
-              className="block text-sm font-medium text-foreground"
-            >
-              Email
-            </Label>
-            <div className="mt-1">
-              <Input
-                id="email"
-                name="email"
-                type="email"
-                autoComplete="email"
-                defaultValue={state.email}
-                required
-                maxLength={50}
-                className="rounded-full"
-                placeholder="Enter your email"
-              />
-            </div>
-          </div>
-
+          <input type="hidden" name="token" value={token} />
+          
           <div>
             <Label
               htmlFor="password"
               className="block text-sm font-medium text-foreground"
             >
-              Password
+              New Password
             </Label>
             <div className="mt-1">
               <Input
                 id="password"
                 name="password"
                 type="password"
-                autoComplete={
-                  mode === 'signin' ? 'current-password' : 'new-password'
-                }
+                autoComplete="new-password"
                 defaultValue={state.password}
                 required
                 minLength={8}
                 maxLength={100}
                 className="rounded-full"
-                placeholder="Enter your password"
+                placeholder="Enter your new password"
               />
             </div>
           </div>
 
-          {mode === 'signup' && (
-            <div>
-              <Label
-                htmlFor="confirmPassword"
-                className="block text-sm font-medium text-foreground"
-              >
-                Confirm Password
-              </Label>
-              <div className="mt-1">
-                <Input
-                  id="confirmPassword"
-                  name="confirmPassword"
-                  type="password"
-                  autoComplete="new-password"
-                  defaultValue={state.confirmPassword}
-                  required
-                  minLength={8}
-                  maxLength={100}
-                  className="rounded-full"
-                  placeholder="Confirm your password"
-                />
-              </div>
+          <div>
+            <Label
+              htmlFor="confirmPassword"
+              className="block text-sm font-medium text-foreground"
+            >
+              Confirm New Password
+            </Label>
+            <div className="mt-1">
+              <Input
+                id="confirmPassword"
+                name="confirmPassword"
+                type="password"
+                autoComplete="new-password"
+                defaultValue={state.confirmPassword}
+                required
+                minLength={8}
+                maxLength={100}
+                className="rounded-full"
+                placeholder="Confirm your new password"
+              />
             </div>
-          )}
+          </div>
 
           {state?.error && (
             <div className="text-destructive text-sm">{state.error}</div>
           )}
 
-          {mode === 'signin' && (
-            <div className="flex justify-end">
-              <Link
-                href="/forgot-password"
-                className="text-sm text-primary hover:underline"
-              >
-                Forgot password?
-              </Link>
+          {state?.success && (
+            <div className="text-green-600 text-sm bg-green-50 p-3 rounded-md">
+              {state.success}
+              <div className="mt-2">
+                <Link href="/sign-in" className="underline font-medium">
+                  Go to Sign In
+                </Link>
+              </div>
             </div>
           )}
 
@@ -134,12 +133,10 @@ export function Login({ mode = 'signin' }: { mode?: 'signin' | 'signup' }) {
               {pending ? (
                 <>
                   <Loader2 className="animate-spin mr-2 h-4 w-4" />
-                  Loading...
+                  Resetting...
                 </>
-              ) : mode === 'signin' ? (
-                'Sign in'
               ) : (
-                'Sign up'
+                'Reset Password'
               )}
             </Button>
           </div>
@@ -152,23 +149,17 @@ export function Login({ mode = 'signin' }: { mode?: 'signin' | 'signup' }) {
             </div>
             <div className="relative flex justify-center text-sm">
               <span className="px-2 bg-background text-muted-foreground">
-                {mode === 'signin'
-                  ? 'New to our platform?'
-                  : 'Already have an account?'}
+                Remember your password?
               </span>
             </div>
           </div>
 
           <div className="mt-6">
             <Link
-              href={`${mode === 'signin' ? '/sign-up' : '/sign-in'}${
-                redirect ? `?redirect=${redirect}` : ''
-              }${priceId ? `&priceId=${priceId}` : ''}`}
+              href="/sign-in"
               className="w-full flex justify-center py-2 px-4 border border-input rounded-full shadow-sm text-sm font-medium text-foreground bg-background hover:bg-accent focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary"
             >
-              {mode === 'signin'
-                ? 'Create an account'
-                : 'Sign in to existing account'}
+              Back to Sign In
             </Link>
           </div>
         </div>

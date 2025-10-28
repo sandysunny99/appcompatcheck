@@ -16,7 +16,7 @@ import { sql } from 'drizzle-orm'
 export const users = pgTable(
   'users',
   {
-    id: integer('id').primaryKey(),
+    id: integer('id').primaryKey().generatedAlwaysAsIdentity(),
     name: varchar('name', { length: 100 }),
     email: varchar('email', { length: 255 }).notNull().unique(),
     passwordHash: text('password_hash').notNull(),
@@ -151,23 +151,23 @@ export const notifications = pgTable(
 export const activityLogs = pgTable(
   'activity_logs',
   {
-    id: varchar('id', { length: 32 }).primaryKey(),
-    organizationId: varchar('organization_id', { length: 32 }),
-    userId: varchar('user_id', { length: 32 }),
-    action: varchar('action', { length: 100 }).notNull(),
-    resource: varchar('resource', { length: 100 }).notNull(),
-    resourceId: varchar('resource_id', { length: 32 }),
-    details: jsonb('details').default({}),
-    ipAddress: varchar('ip_address', { length: 45 }),
+    id: integer('id').primaryKey().generatedAlwaysAsIdentity(),
+    userId: integer('user_id'),
+    organizationId: integer('organization_id'),
+    action: varchar('action').notNull(),
+    entityType: varchar('entity_type'),
+    entityId: integer('entity_id'),
+    description: text('description'),
+    ipAddress: varchar('ip_address'),
     userAgent: text('user_agent'),
-    createdAt: timestamp('created_at').notNull().defaultNow(),
+    metadata: jsonb('metadata'),
+    timestamp: timestamp('timestamp').notNull().defaultNow(),
   },
   (table) => ({
-    orgIdx: index('activity_logs_organization_idx').on(table.organizationId),
     userIdx: index('activity_logs_user_idx').on(table.userId),
+    orgIdx: index('activity_logs_organization_idx').on(table.organizationId),
     actionIdx: index('activity_logs_action_idx').on(table.action),
-    resourceIdx: index('activity_logs_resource_idx').on(table.resource),
-    createdAtIdx: index('activity_logs_created_at_idx').on(table.createdAt),
+    timestampIdx: index('activity_logs_timestamp_idx').on(table.timestamp),
   })
 )
 

@@ -3,6 +3,8 @@
 import { z } from 'zod';
 import { eq } from 'drizzle-orm';
 import { db } from '@/lib/db/drizzle';
+import crypto from 'crypto';
+import { redis } from '@/lib/db/redis';
 import {
   User,
   users,
@@ -26,13 +28,19 @@ async function logActivity(
   ipAddress?: string,
   metadata?: string
 ) {
-  const newActivity: NewActivityLog = {
-    userId,
-    action: type,
-    ipAddress: ipAddress || '',
-    metadata: metadata || null
-  };
-  await db.insert(activityLogs).values(newActivity);
+  try {
+    const newActivity: NewActivityLog = {
+      userId,
+      action: type,
+      entityType: 'USER',
+      ipAddress: ipAddress || null,
+      metadata: metadata ? { description: metadata } : null
+    };
+    await db.insert(activityLogs).values(newActivity);
+  } catch (error) {
+    console.error('Failed to log activity:', error);
+    // Don't throw - activity logging should not break main functionality
+  }
 }
 
 const signInSchema = z.object({
@@ -82,50 +90,66 @@ export const signIn = validatedAction(signInSchema, async (data, formData) => {
 
 const signUpSchema = z.object({
   email: z.string().email(),
-  password: z.string().min(8)
+  password: z.string().min(8),
+  confirmPassword: z.string().min(8)
+}).refine((data) => data.password === data.confirmPassword, {
+  message: 'Passwords do not match',
+  path: ['confirmPassword'],
 });
 
 export const signUp = validatedAction(signUpSchema, async (data, formData) => {
-  const { email, password } = data;
+  const { email, password, confirmPassword } = data;
 
-  const existingUser = await db
-    .select()
-    .from(users)
-    .where(eq(users.email, email))
-    .limit(1);
+  try {
+    const existingUser = await db
+      .select()
+      .from(users)
+      .where(eq(users.email, email))
+      .limit(1);
 
-  if (existingUser.length > 0) {
-    return {
-      error: 'Failed to create user. Please try again.',
+    if (existingUser.length > 0) {
+      return {
+        error: 'An account with this email already exists. Please sign in instead.',
+        email,
+        password,
+        confirmPassword
+      };
+    }
+
+    const passwordHash = await hashPassword(password);
+
+    const newUser: NewUser = {
       email,
-      password
+      passwordHash,
+      name: null
+    };
+
+    const [createdUser] = await db.insert(users).values(newUser).returning();
+
+    if (!createdUser) {
+      return {
+        error: 'Failed to create user. Please try again.',
+        email,
+        password,
+        confirmPassword
+      };
+    }
+    
+    await Promise.all([
+      logActivity(createdUser.id, ActivityType.SIGN_UP),
+      setSession(createdUser)
+    ]);
+
+    redirect('/');
+  } catch (error) {
+    console.error('[SignUp] Error during sign up:', error);
+    return {
+      error: 'An unexpected error occurred. Please try again.',
+      email,
+      password,
+      confirmPassword
     };
   }
-
-  const passwordHash = await hashPassword(password);
-
-  const newUser: NewUser = {
-    email,
-    passwordHash,
-    name: null
-  };
-
-  const [createdUser] = await db.insert(users).values(newUser).returning();
-
-  if (!createdUser) {
-    return {
-      error: 'Failed to create user. Please try again.',
-      email,
-      password
-    };
-  }
-
-  await Promise.all([
-    logActivity(createdUser.id, ActivityType.SIGN_UP),
-    setSession(createdUser)
-  ]);
-
-  redirect('/');
 });
 
 export async function signOut() {
@@ -255,5 +279,139 @@ export const updateAccount = validatedActionWithUser(
     return {
       success: 'Account updated successfully.'
     };
+  }
+);
+
+// Forgot Password Action
+const forgotPasswordSchema = z.object({
+  email: z.string().email().min(3).max(255)
+});
+
+export const forgotPassword = validatedAction(
+  forgotPasswordSchema,
+  async (data, formData) => {
+    const { email } = data;
+
+    try {
+      const foundUser = await db
+        .select()
+        .from(users)
+        .where(eq(users.email, email))
+        .limit(1);
+
+      // Always return success to prevent email enumeration
+      if (foundUser.length === 0) {
+        return {
+          success:
+            'If an account with that email exists, we have sent a password reset link.'
+        };
+      }
+
+      const user = foundUser[0];
+
+      // Generate reset token (random string)
+      const resetToken = crypto.randomBytes(32).toString('hex');
+      
+      // Store reset token in Redis with 1 hour expiry
+      await redis.setex(
+        `password_reset:${resetToken}`,
+        3600, // 1 hour in seconds
+        user.id.toString()
+      );
+
+      // TODO: Send email with reset link
+      // For now, we'll just log it (in production, integrate with email service)
+      console.log(`Password reset token for ${email}: ${resetToken}`);
+      console.log(
+        `Reset link: ${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/reset-password?token=${resetToken}`
+      );
+
+      return {
+        success:
+          'If an account with that email exists, we have sent a password reset link.'
+      };
+    } catch (error) {
+      console.error('[ForgotPassword] Error:', error);
+      return {
+        error: 'An error occurred. Please try again.'
+      };
+    }
+  }
+);
+
+// Reset Password Action
+const resetPasswordSchema = z.object({
+  token: z.string().min(1),
+  password: z.string().min(8).max(100),
+  confirmPassword: z.string().min(8).max(100)
+}).refine((data) => data.password === data.confirmPassword, {
+  message: 'Passwords do not match',
+  path: ['confirmPassword'],
+});
+
+export const resetPassword = validatedAction(
+  resetPasswordSchema,
+  async (data, formData) => {
+    const { token, password, confirmPassword } = data;
+
+    try {
+      // Check if token exists in Redis
+      const userId = await redis.get(`password_reset:${token}`);
+
+      if (!userId) {
+        return {
+          error: 'Invalid or expired reset token.',
+          token,
+          password,
+          confirmPassword
+        };
+      }
+
+      // Get user by ID
+      const foundUser = await db
+        .select()
+        .from(users)
+        .where(eq(users.id, parseInt(userId)))
+        .limit(1);
+
+      if (foundUser.length === 0) {
+        return {
+          error: 'User not found.',
+          token,
+          password,
+          confirmPassword
+        };
+      }
+
+      const user = foundUser[0];
+
+      // Hash new password
+      const newPasswordHash = await hashPassword(password);
+
+      // Update password
+      await db
+        .update(users)
+        .set({
+          passwordHash: newPasswordHash
+        })
+        .where(eq(users.id, user.id));
+      
+      // Delete the reset token from Redis
+      await redis.del(`password_reset:${token}`);
+
+      await logActivity(user.id, ActivityType.UPDATE_PASSWORD);
+
+      return {
+        success: 'Password reset successfully. You can now sign in.'
+      };
+    } catch (error) {
+      console.error('[ResetPassword] Error:', error);
+      return {
+        error: 'An error occurred. Please try again.',
+        token,
+        password,
+        confirmPassword
+      };
+    }
   }
 );
