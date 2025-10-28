@@ -110,14 +110,16 @@ export function ResetPasswordForm() {
           </div>
 
           {state?.error && (
-            <div className="text-destructive text-sm">{state.error}</div>
+            <div className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
+              {state.error}
+            </div>
           )}
 
           {state?.success && (
-            <div className="text-green-600 text-sm bg-green-50 p-3 rounded-md">
+            <div className="rounded-md bg-green-500/10 p-3 text-sm text-green-600 dark:text-green-400">
               {state.success}
               <div className="mt-2">
-                <Link href="/sign-in" className="underline font-medium">
+                <Link href="/sign-in" className="underline font-medium hover:text-green-700 dark:hover:text-green-300">
                   Go to Sign In
                 </Link>
               </div>

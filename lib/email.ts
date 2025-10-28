@@ -2,23 +2,36 @@ import nodemailer from 'nodemailer'
 import { generateId } from '@/lib/utils'
 
 // Email configuration
-const emailConfig = {
-  host: process.env.SMTP_HOST || 'smtp.ethereal.email',
-  port: parseInt(process.env.SMTP_PORT || '587'),
-  secure: process.env.SMTP_SECURE === 'true',
-  auth: {
-    user: process.env.SMTP_USER,
-    pass: process.env.SMTP_PASSWORD,
-  },
+function createEmailConfig() {
+  // Only create transporter if SMTP is properly configured
+  if (!process.env.SMTP_HOST || !process.env.SMTP_USER || !process.env.SMTP_PASSWORD) {
+    console.log('Email not configured. Emails will not be sent. Set SMTP_HOST, SMTP_USER, and SMTP_PASSWORD in .env to enable email.');
+    return null;
+  }
+
+  return {
+    host: process.env.SMTP_HOST,
+    port: parseInt(process.env.SMTP_PORT || '587'),
+    secure: process.env.SMTP_SECURE === 'true',
+    auth: {
+      user: process.env.SMTP_USER,
+      pass: process.env.SMTP_PASSWORD,
+    },
+  };
 }
 
 // Create reusable transporter
 let transporter: nodemailer.Transporter | null = null
 
 try {
-  transporter = nodemailer.createTransport(emailConfig)
+  const emailConfig = createEmailConfig();
+  if (emailConfig) {
+    transporter = nodemailer.createTransport(emailConfig)
+    console.log('Email transporter configured successfully');
+  }
 } catch (error) {
   console.error('Failed to create email transporter:', error)
+  console.log('Continuing without email functionality...');
 }
 
 /**

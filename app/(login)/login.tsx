@@ -111,7 +111,15 @@ export function Login({ mode = 'signin' }: { mode?: 'signin' | 'signup' }) {
           )}
 
           {state?.error && (
-            <div className="text-destructive text-sm">{state.error}</div>
+            <div className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
+              {state.error}
+            </div>
+          )}
+          
+          {state?.success && (
+            <div className="rounded-md bg-green-500/10 p-3 text-sm text-green-600 dark:text-green-400">
+              {state.success}
+            </div>
           )}
 
           {mode === 'signin' && (

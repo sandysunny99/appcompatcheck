@@ -145,9 +145,13 @@ export const signUp = validatedAction(signUpSchema, async (data, formData) => {
       logActivity(createdUser.id, ActivityType.SIGN_UP),
       setSession(createdUser)
     ]);
-
-    redirect('/');
   } catch (error) {
+    // Check if this is a redirect error (which is expected)
+    if (error && typeof error === 'object' && 'digest' in error && 
+        typeof (error as any).digest === 'string' && 
+        (error as any).digest.startsWith('NEXT_REDIRECT')) {
+      throw error; // Re-throw redirect errors
+    }
     console.error('[SignUp] Error during sign up:', error);
     return {
       error: 'An unexpected error occurred. Please try again.',
@@ -156,6 +160,9 @@ export const signUp = validatedAction(signUpSchema, async (data, formData) => {
       confirmPassword
     };
   }
+  
+  // Redirect outside try-catch to avoid catching it
+  redirect('/');
 });
 
 export async function signOut() {
