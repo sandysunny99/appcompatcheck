@@ -245,6 +245,59 @@ export const webhooks = pgTable(
   })
 )
 
+// Security Events table
+export const securityEvents = pgTable(
+  'security_events',
+  {
+    id: integer('id').primaryKey().generatedAlwaysAsIdentity(),
+    userId: integer('user_id'),
+    eventType: varchar('event_type', { length: 100 }).notNull(),
+    severity: varchar('severity', { length: 20 }).notNull(), // low, medium, high, critical
+    action: varchar('action', { length: 100 }),
+    resource: varchar('resource', { length: 255 }),
+    ipAddress: varchar('ip_address', { length: 45 }),
+    userAgent: text('user_agent'),
+    status: varchar('status', { length: 50 }).default('completed'),
+    errorMessage: text('error_message'),
+    metadata: jsonb('metadata').default({}),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+  },
+  (table) => ({
+    userIdx: index('security_events_user_idx').on(table.userId),
+    typeIdx: index('security_events_type_idx').on(table.eventType),
+    severityIdx: index('security_events_severity_idx').on(table.severity),
+    createdIdx: index('security_events_created_idx').on(table.createdAt),
+    ipIdx: index('security_events_ip_idx').on(table.ipAddress),
+    actionIdx: index('security_events_action_idx').on(table.action),
+    userCreatedIdx: index('security_events_user_created_idx').on(table.userId, table.createdAt),
+  })
+)
+
+// Rate Limit Logs table
+export const rateLimitLogs = pgTable(
+  'rate_limit_logs',
+  {
+    id: integer('id').primaryKey().generatedAlwaysAsIdentity(),
+    identifier: varchar('identifier', { length: 255 }).notNull(),
+    endpoint: varchar('endpoint', { length: 255 }).notNull(),
+    attempts: integer('attempts').notNull().default(1),
+    firstAttempt: timestamp('first_attempt').notNull().defaultNow(),
+    lastAttempt: timestamp('last_attempt').notNull().defaultNow(),
+    isBlocked: boolean('is_blocked').notNull().default(false),
+    blockedUntil: timestamp('blocked_until'),
+    blockReason: varchar('block_reason', { length: 255 }),
+    metadata: jsonb('metadata').default({}),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+  },
+  (table) => ({
+    identifierIdx: index('rate_limit_identifier_idx').on(table.identifier),
+    endpointIdx: index('rate_limit_endpoint_idx').on(table.endpoint),
+    blockedIdx: index('rate_limit_blocked_idx').on(table.isBlocked),
+    createdIdx: index('rate_limit_created_idx').on(table.createdAt),
+    lookupIdx: index('rate_limit_lookup_idx').on(table.identifier, table.endpoint, table.lastAttempt),
+  })
+)
+
 // Enums
 export enum UserRole {
   USER = 'user',
@@ -285,3 +338,7 @@ export type Integration = typeof integrations.$inferSelect
 export type NewIntegration = typeof integrations.$inferInsert
 export type Webhook = typeof webhooks.$inferSelect
 export type NewWebhook = typeof webhooks.$inferInsert
+export type SecurityEvent = typeof securityEvents.$inferSelect
+export type NewSecurityEvent = typeof securityEvents.$inferInsert
+export type RateLimitLog = typeof rateLimitLogs.$inferSelect
+export type NewRateLimitLog = typeof rateLimitLogs.$inferInsert

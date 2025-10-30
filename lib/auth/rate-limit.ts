@@ -341,3 +341,74 @@ export function addRateLimitHeaders(
     headers,
   });
 }
+
+/**
+ * Hybrid Rate Limiters with Fallback
+ * 
+ * These rate limiters automatically fall back to in-memory storage
+ * when Redis is unavailable, ensuring continuous security protection.
+ */
+import { HybridRateLimiter } from './rate-limit-fallback';
+
+// Hybrid authentication rate limiter with fallback
+export const hybridAuthRateLimiter = new HybridRateLimiter(
+  authRateLimiter,
+  {
+    maxRequests: 5,
+    windowSeconds: 900,
+    blockDurationSeconds: 1800,
+  }
+);
+
+// Hybrid registration rate limiter with fallback
+export const hybridRegistrationRateLimiter = new HybridRateLimiter(
+  registrationRateLimiter,
+  {
+    maxRequests: 3,
+    windowSeconds: 3600,
+    blockDurationSeconds: 3600,
+  }
+);
+
+// Hybrid API rate limiter with fallback
+export const hybridApiRateLimiter = new HybridRateLimiter(
+  apiRateLimiter,
+  {
+    maxRequests: 100,
+    windowSeconds: 60,
+    blockDurationSeconds: 300,
+  }
+);
+
+// Hybrid password reset rate limiter with fallback
+export const hybridPasswordResetRateLimiter = new HybridRateLimiter(
+  passwordResetRateLimiter,
+  {
+    maxRequests: 3,
+    windowSeconds: 3600,
+    blockDurationSeconds: 3600,
+  }
+);
+
+// Hybrid upload rate limiter with fallback
+export const hybridUploadRateLimiter = new HybridRateLimiter(
+  uploadRateLimiter,
+  {
+    maxRequests: 10,
+    windowSeconds: 3600,
+    blockDurationSeconds: 1800,
+  }
+);
+
+/**
+ * Get rate limiter statistics (for monitoring)
+ */
+export function getRateLimiterStats() {
+  return {
+    auth: hybridAuthRateLimiter.getStats(),
+    registration: hybridRegistrationRateLimiter.getStats(),
+    api: hybridApiRateLimiter.getStats(),
+    passwordReset: hybridPasswordResetRateLimiter.getStats(),
+    upload: hybridUploadRateLimiter.getStats(),
+  };
+}

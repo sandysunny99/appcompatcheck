@@ -230,6 +230,171 @@ export const mfaConfig = {
 } as const;
 
 /**
+ * Fallback Configuration
+ * 
+ * Settings for graceful degradation when external services fail
+ */
+export const fallbackConfig = {
+  /**
+   * Enable in-memory fallback for rate limiting when Redis is unavailable
+   */
+  rateLimitFallbackEnabled: true,
+  
+  /**
+   * Memory store cleanup interval in milliseconds
+   */
+  memoryStoreCleanupInterval: 5 * 60 * 1000, // 5 minutes
+  
+  /**
+   * Maximum entries in memory fallback store
+   */
+  maxMemoryStoreSize: 10000,
+  
+  /**
+   * Redis reconnection attempts
+   */
+  redisReconnectAttempts: 3,
+  
+  /**
+   * Redis reconnection interval in milliseconds
+   */
+  redisReconnectInterval: 30000, // 30 seconds
+  
+  /**
+   * Fail open (allow requests) or fail closed (block requests) on Redis failure
+   * Development: fail open, Production: use fallback
+   */
+  failMode: process.env.NODE_ENV === 'development' ? 'open' : 'fallback',
+} as const;
+
+/**
+ * Alert Thresholds Configuration
+ * 
+ * Defines when to trigger security alerts and notifications
+ */
+export const alertThresholds = {
+  /**
+   * Rate Limiting Alerts
+   */
+  rateLimit: {
+    // Alert when rate limit exceeded events exceed this count per 5 minutes
+    eventsPerFiveMinutes: 50,
+    
+    // Alert on sustained high rate limiting (per hour)
+    eventsPerHour: 200,
+    
+    // Critical alert threshold
+    criticalEventsPerMinute: 20,
+  },
+  
+  /**
+   * Account Lockout Alerts
+   */
+  accountLockout: {
+    // Alert when lockouts exceed this count per hour
+    lockoutsPerHour: 10,
+    
+    // Alert on repeated lockouts for same account
+    repeatedLockoutsThreshold: 3,
+    
+    // Critical: potential targeted attack
+    criticalLockoutsPerMinute: 5,
+  },
+  
+  /**
+   * Password Policy Alerts
+   */
+  passwordPolicy: {
+    // Alert when weak password attempts exceed threshold
+    weakPasswordAttemptsPerHour: 100,
+    
+    // Alert on common password usage attempts
+    commonPasswordAttemptsPerHour: 50,
+  },
+  
+  /**
+   * Authentication Alerts
+   */
+  authentication: {
+    // Alert on high failed login rate
+    failedLoginsPerHour: 100,
+    
+    // Alert on potential brute force (same IP)
+    failedLoginsPerIPPerMinute: 10,
+    
+    // Critical: distributed brute force attack
+    uniqueIPsFailedLoginsPerMinute: 50,
+  },
+  
+  /**
+   * Input Validation Alerts
+   */
+  inputValidation: {
+    // Alert on SQL injection attempts
+    sqlInjectionAttemptsPerHour: 20,
+    
+    // Alert on XSS attempts
+    xssAttemptsPerHour: 20,
+    
+    // Alert on path traversal attempts
+    pathTraversalAttemptsPerHour: 10,
+  },
+  
+  /**
+   * System Health Alerts
+   */
+  systemHealth: {
+    // Alert when Redis is down for this duration (seconds)
+    redisDownSeconds: 60,
+    
+    // Alert when database errors exceed threshold
+    databaseErrorsPerMinute: 5,
+    
+    // Alert on high memory usage in fallback store
+    memoryStoreUsagePercent: 80,
+  },
+} as const;
+
+/**
+ * Security Monitoring Configuration
+ */
+export const securityMonitoringConfig = {
+  /**
+   * Enable real-time security monitoring
+   */
+  enabled: true,
+  
+  /**
+   * Log all security events
+   */
+  logAllEvents: true,
+  
+  /**
+   * Sampling rate for performance metrics (0-1)
+   */
+  metricsSamplingRate: process.env.NODE_ENV === 'production' ? 0.1 : 1.0,
+  
+  /**
+   * Event retention period in days
+   */
+  eventRetentionDays: 90,
+  
+  /**
+   * Alert notification channels
+   */
+  alertChannels: {
+    email: true,
+    slack: false, // Configure when available
+    webhook: false, // Configure when available
+  },
+  
+  /**
+   * Dashboard refresh interval in seconds
+   */
+  dashboardRefreshInterval: 30,
+} as const;
+
+/**
  * OAuth configuration
  */
 export const oauthConfig = {

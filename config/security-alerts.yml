@@ -1,0 +1,319 @@
+# Security Alert Configuration
+# Defines alert rules, thresholds, and notification channels
+
+version: "1.0"
+environment: production
+
+# ============================================================================
+# Alert Channels Configuration
+# ============================================================================
+channels:
+  email:
+    enabled: true
+    recipients:
+      - security@example.com
+      - devops@example.com
+    smtp:
+      host: ${SMTP_HOST}
+      port: 587
+      secure: true
+      auth:
+        user: ${SMTP_USER}
+        pass: ${SMTP_PASSWORD}
+
+  slack:
+    enabled: false  # Enable when Slack webhook is configured
+    webhook_url: ${SLACK_WEBHOOK_URL}
+    channel: "#security-alerts"
+    mention_on_critical: "@channel"
+
+  webhook:
+    enabled: false  # Enable for custom integrations
+    url: ${WEBHOOK_URL}
+    method: POST
+    headers:
+      Content-Type: application/json
+      Authorization: Bearer ${WEBHOOK_TOKEN}
+
+  pagerduty:
+    enabled: false  # Enable for on-call rotation
+    integration_key: ${PAGERDUTY_INTEGRATION_KEY}
+    escalation_policy: security-team
+
+# ============================================================================
+# Alert Rules
+# ============================================================================
+alerts:
+  # Brute Force Attack Detection
+  - name: "Brute Force Attack Detected"
+    id: brute_force_attack
+    description: "High volume of failed login attempts detected"
+    severity: critical
+    condition: "rate_limit_exceeded_events > 50 per 5 minutes"
+    query: |
+      SELECT COUNT(*) as event_count
+      FROM security_events
+      WHERE event_type IN ('login_failure', 'rate_limit_exceeded')
+        AND created_at > NOW() - INTERVAL '5 minutes'
+    threshold: 50
+    channels: [email, slack, pagerduty]
+    cooldown: 15m  # Don't alert again for 15 minutes
+    actions:
+      - type: auto_block_ip
+        duration: 1h
+      - type: notify_security_team
+      - type: log_incident
+
+  # Multiple Account Lockouts
+  - name: "Multiple Account Lockouts"
+    id: account_lockout_spike
+    description: "Unusual number of account lockouts detected"
+    severity: high
+    condition: "account_locked_events > 10 per hour"
+    query: |
+      SELECT COUNT(*) as lockout_count
+      FROM security_events
+      WHERE event_type = 'account_locked'
+        AND created_at > NOW() - INTERVAL '1 hour'
+    threshold: 10
+    channels: [email, slack]
+    cooldown: 1h
+    actions:
+      - type: notify_security_team
+      - type: generate_incident_report
+
+  # Distributed Brute Force
+  - name: "Distributed Brute Force Attack"
+    id: distributed_brute_force
+    description: "Failed logins from many different IP addresses"
+    severity: critical
+    condition: "failed_logins > 100 AND unique_ips > 50 per hour"
+    query: |
+      SELECT 
+        COUNT(*) as failed_logins,
+        COUNT(DISTINCT ip_address) as unique_ips
+      FROM security_events
+      WHERE event_type = 'login_failure'
+        AND created_at > NOW() - INTERVAL '1 hour'
+    threshold:
+      failed_logins: 100
+      unique_ips: 50
+    channels: [email, slack, pagerduty]
+    cooldown: 30m
+    actions:
+      - type: enable_captcha
+      - type: notify_security_team
+      - type: log_incident
+
+  # SQL Injection Attempts
+  - name: "SQL Injection Attack Detected"
+    id: sql_injection_attack
+    description: "Multiple SQL injection attempts detected"
+    severity: high
+    condition: "sql_injection_attempts > 20 per hour"
+    query: |
+      SELECT COUNT(*) as attempt_count
+      FROM security_events
+      WHERE event_type = 'sql_injection_attempt'
+        AND created_at > NOW() - INTERVAL '1 hour'
+    threshold: 20
+    channels: [email, slack]
+    cooldown: 1h
+    actions:
+      - type: block_ip
+        duration: 24h
+      - type: notify_security_team
+
+  # XSS Attack Attempts
+  - name: "XSS Attack Detected"
+    id: xss_attack
+    description: "Multiple XSS attack attempts detected"
+    severity: high
+    condition: "xss_attempts > 20 per hour"
+    query: |
+      SELECT COUNT(*) as attempt_count
+      FROM security_events
+      WHERE event_type = 'xss_attempt'
+        AND created_at > NOW() - INTERVAL '1 hour'
+    threshold: 20
+    channels: [email, slack]
+    cooldown: 1h
+    actions:
+      - type: block_ip
+        duration: 24h
+      - type: notify_security_team
+
+  # Weak Password Attempts Spike
+  - name: "Weak Password Attempt Spike"
+    id: weak_password_spike
+    description: "Unusual volume of weak password registration attempts"
+    severity: medium
+    condition: "weak_password_attempts > 100 per hour"
+    query: |
+      SELECT COUNT(*) as attempt_count
+      FROM security_events
+      WHERE event_type = 'password_validation_failed'
+        AND metadata->>'weak_password' = 'true'
+        AND created_at > NOW() - INTERVAL '1 hour'
+    threshold: 100
+    channels: [email]
+    cooldown: 2h
+    actions:
+      - type: notify_security_team
+
+  # Redis Service Down
+  - name: "Redis Service Unavailable"
+    id: redis_down
+    description: "Redis is down, using fallback mechanism"
+    severity: high
+    condition: "redis_unavailable > 60 seconds"
+    query: |
+      SELECT COUNT(*) as error_count
+      FROM security_events
+      WHERE event_type = 'redis_error'
+        AND created_at > NOW() - INTERVAL '5 minutes'
+    threshold: 10
+    channels: [email, slack, pagerduty]
+    cooldown: 10m
+    actions:
+      - type: notify_devops_team
+      - type: attempt_redis_reconnect
+
+  # Database Errors
+  - name: "Database Connection Errors"
+    id: database_errors
+    description: "High volume of database errors detected"
+    severity: critical
+    condition: "database_errors > 5 per minute"
+    query: |
+      SELECT COUNT(*) as error_count
+      FROM security_events
+      WHERE event_type = 'database_error'
+        AND created_at > NOW() - INTERVAL '1 minute'
+    threshold: 5
+    channels: [email, pagerduty]
+    cooldown: 5m
+    actions:
+      - type: notify_devops_team
+      - type: enable_fallback_mode
+
+  # CSRF Protection Failures
+  - name: "CSRF Protection Failures"
+    id: csrf_failures
+    description: "Multiple CSRF token validation failures"
+    severity: medium
+    condition: "csrf_failures > 30 per hour"
+    query: |
+      SELECT COUNT(*) as failure_count
+      FROM security_events
+      WHERE event_type = 'csrf_validation_failed'
+        AND created_at > NOW() - INTERVAL '1 hour'
+    threshold: 30
+    channels: [email]
+    cooldown: 1h
+    actions:
+      - type: notify_security_team
+
+  # Memory Store High Usage
+  - name: "Memory Fallback Store High Usage"
+    id: memory_store_high_usage
+    description: "In-memory fallback store is running high on capacity"
+    severity: medium
+    condition: "memory_store_usage > 80%"
+    threshold: 80
+    channels: [email, slack]
+    cooldown: 30m
+    actions:
+      - type: notify_devops_team
+      - type: trigger_cleanup
+
+# ============================================================================
+# Alert Aggregation Rules
+# ============================================================================
+aggregation:
+  # Group similar alerts within timewindow
+  enabled: true
+  window: 5m
+  group_by: [alert_id, ip_address]
+  max_alerts_per_group: 100
+
+# ============================================================================
+# Notification Templates
+# ============================================================================
+templates:
+  email:
+    subject: "[{{severity}}] {{alert_name}} - AppCompatCheck Security Alert"
+    body: |
+      Security Alert: {{alert_name}}
+      
+      Severity: {{severity}}
+      Time: {{timestamp}}
+      
+      Description:
+      {{description}}
+      
+      Details:
+      {{details}}
+      
+      Actions Taken:
+      {{actions}}
+      
+      Query Results:
+      {{query_results}}
+      
+      ---
+      This is an automated security alert from AppCompatCheck.
+      Please investigate immediately if severity is HIGH or CRITICAL.
+
+  slack:
+    blocks:
+      - type: header
+        text:
+          type: plain_text
+          text: "🚨 Security Alert: {{alert_name}}"
+      - type: section
+        fields:
+          - type: mrkdwn
+            text: "*Severity:* {{severity}}"
+          - type: mrkdwn
+            text: "*Time:* {{timestamp}}"
+      - type: section
+        text:
+          type: mrkdwn
+          text: "{{description}}"
+      - type: section
+        text:
+          type: mrkdwn
+          text: "*Details:*\n```{{details}}```"
+      - type: actions
+        elements:
+          - type: button
+            text:
+              type: plain_text
+              text: "View Dashboard"
+            url: "https://app.example.com/security/dashboard"
+            style: primary
+
+# ============================================================================
+# Alert Schedule
+# ============================================================================
+schedule:
+  # Check frequency for each alert type
+  default_interval: 1m  # Check every minute
+  critical_interval: 30s  # Critical alerts checked every 30 seconds
+  
+  # Quiet hours (reduce non-critical alerts)
+  quiet_hours:
+    enabled: false
+    start: "22:00"
+    end: "08:00"
+    timezone: "UTC"
+    suppress_severities: [low, medium]
+
+# ============================================================================
+# Alert Retention
+# ============================================================================
+retention:
+  alert_history_days: 90
+  incident_reports_days: 365
+  resolved_alerts_days: 30
