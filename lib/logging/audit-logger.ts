@@ -1,5 +1,5 @@
 import { db } from '@/lib/db/drizzle';
-import { auditLogs } from '@/lib/db/schema';
+import { activityLogs } from '@/lib/db/schema';
 import { redis } from '@/lib/redis/client';
 import { eq, desc, and, gte, lte, like, or, sql } from 'drizzle-orm';
 
@@ -52,12 +52,14 @@ export class AuditLogger {
   async logEvent(event: AuditEvent): Promise<void> {
     try {
       // Insert into database
-      await db.insert(auditLogs).values({
+      await db.insert(activityLogs).values({
         userId: event.userId,
+        organizationId: null, // Will be filled by app context
         action: event.action,
-        resource: event.resource,
-        resourceId: event.resourceId || null,
-        details: event.details || null,
+        entityType: event.resource, // Map resource to entityType
+        entityId: event.resourceId ? parseInt(event.resourceId) : null, // Map resourceId to entityId
+        description: event.details ? JSON.stringify(event.details) : null, // Map details to description
+        metadata: event.details || null,
         timestamp: event.timestamp || new Date(),
         ipAddress: event.ipAddress || null,
         userAgent: event.userAgent || null,
@@ -101,31 +103,31 @@ export class AuditLogger {
       let conditions = [];
 
       if (query.userId) {
-        conditions.push(eq(auditLogs.userId, query.userId));
+        conditions.push(eq(activityLogs.userId, query.userId));
       }
 
       if (query.action) {
-        conditions.push(like(auditLogs.action, `%${query.action}%`));
+        conditions.push(like(activityLogs.action, `%${query.action}%`));
       }
 
       if (query.resource) {
-        conditions.push(eq(auditLogs.resource, query.resource));
+        conditions.push(eq(activityLogs.entityType, query.resource));
       }
 
       if (query.resourceId) {
-        conditions.push(eq(auditLogs.resourceId, query.resourceId));
+        conditions.push(eq(activityLogs.entityId, query.resourceId ? parseInt(query.resourceId) : null));
       }
 
       if (query.dateFrom) {
-        conditions.push(gte(auditLogs.timestamp, query.dateFrom));
+        conditions.push(gte(activityLogs.timestamp, query.dateFrom));
       }
 
       if (query.dateTo) {
-        conditions.push(lte(auditLogs.timestamp, query.dateTo));
+        conditions.push(lte(activityLogs.timestamp, query.dateTo));
       }
 
       if (query.ipAddress) {
-        conditions.push(eq(auditLogs.ipAddress, query.ipAddress));
+        conditions.push(eq(activityLogs.ipAddress, query.ipAddress));
       }
 
       const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
@@ -133,7 +135,7 @@ export class AuditLogger {
       // Get total count
       const totalResult = await db
         .select({ count: sql`count(*)` })
-        .from(auditLogs)
+        .from(activityLogs)
         .where(whereClause);
       
       const total = Number(totalResult[0]?.count || 0);
@@ -141,9 +143,9 @@ export class AuditLogger {
       // Get logs with pagination
       const logs = await db
         .select()
-        .from(auditLogs)
+        .from(activityLogs)
         .where(whereClause)
-        .orderBy(desc(auditLogs.timestamp))
+        .orderBy(desc(activityLogs.timestamp))
         .limit(query.limit || 50)
         .offset(query.offset || 0);
 
@@ -273,11 +275,11 @@ export class AuditLogger {
       let conditions = [];
 
       if (dateFrom) {
-        conditions.push(gte(auditLogs.timestamp, dateFrom));
+        conditions.push(gte(activityLogs.timestamp, dateFrom));
       }
 
       if (dateTo) {
-        conditions.push(lte(auditLogs.timestamp, dateTo));
+        conditions.push(lte(activityLogs.timestamp, dateTo));
       }
 
       const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
@@ -285,7 +287,7 @@ export class AuditLogger {
       // Get total events
       const totalResult = await db
         .select({ count: sql`count(*)` })
-        .from(auditLogs)
+        .from(activityLogs)
         .where(whereClause);
       
       const totalEvents = Number(totalResult[0]?.count || 0);
@@ -293,47 +295,47 @@ export class AuditLogger {
       // Get events by action
       const actionResults = await db
         .select({
-          action: auditLogs.action,
+          action: activityLogs.action,
           count: sql`count(*)`,
         })
-        .from(auditLogs)
+        .from(activityLogs)
         .where(whereClause)
-        .groupBy(auditLogs.action)
+        .groupBy(activityLogs.action)
         .orderBy(sql`count(*) DESC`);
 
       // Get events by resource
       const resourceResults = await db
         .select({
-          resource: auditLogs.resource,
+          resource: activityLogs.entityType,
           count: sql`count(*)`,
         })
-        .from(auditLogs)
+        .from(activityLogs)
         .where(whereClause)
-        .groupBy(auditLogs.resource)
+        .groupBy(activityLogs.entityType)
         .orderBy(sql`count(*) DESC`);
 
       // Get events by user
       const userResults = await db
         .select({
-          userId: auditLogs.userId,
+          userId: activityLogs.userId,
           count: sql`count(*)`,
         })
-        .from(auditLogs)
+        .from(activityLogs)
         .where(whereClause)
-        .groupBy(auditLogs.userId)
+        .groupBy(activityLogs.userId)
         .orderBy(sql`count(*) DESC`)
         .limit(10);
 
       // Get events by hour
       const hourResults = await db
         .select({
-          hour: sql`date_trunc('hour', ${auditLogs.timestamp})`,
+          hour: sql`date_trunc('hour', ${activityLogs.timestamp})`,
           count: sql`count(*)`,
         })
-        .from(auditLogs)
+        .from(activityLogs)
         .where(whereClause)
-        .groupBy(sql`date_trunc('hour', ${auditLogs.timestamp})`)
-        .orderBy(sql`date_trunc('hour', ${auditLogs.timestamp}) DESC`)
+        .groupBy(sql`date_trunc('hour', ${activityLogs.timestamp})`)
+        .orderBy(sql`date_trunc('hour', ${activityLogs.timestamp}) DESC`)
         .limit(24);
 
       // Get security events from cache
@@ -446,8 +448,8 @@ export class AuditLogger {
       cutoffDate.setDate(cutoffDate.getDate() - retentionDays);
 
       const result = await db
-        .delete(auditLogs)
-        .where(lte(auditLogs.timestamp, cutoffDate));
+        .delete(activityLogs)
+        .where(lte(activityLogs.timestamp, cutoffDate));
 
       console.log(`Cleaned ${result.rowCount || 0} old audit logs`);
       return result.rowCount || 0;

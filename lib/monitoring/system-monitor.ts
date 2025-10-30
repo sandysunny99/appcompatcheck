@@ -1,5 +1,5 @@
 import { db } from '@/lib/db/drizzle';
-import { auditLogs } from '@/lib/db/schema';
+import { activityLogs } from '@/lib/db/schema';
 import { redis } from '@/lib/redis/client';
 import { DatabaseHealthMonitor } from '@/lib/performance/database-optimization';
 import { eq, desc, and, gte, lte } from 'drizzle-orm';
@@ -498,12 +498,14 @@ export class SystemMonitor {
     details?: any;
   }): Promise<void> {
     try {
-      await db.insert(auditLogs).values({
-        userId: event.userId,
+      await db.insert(activityLogs).values({
+        userId: event.userId ? parseInt(event.userId) : null,
+        organizationId: null, // Will be filled by app context
         action: event.action,
-        resource: event.resource,
-        resourceId: event.resourceId,
-        details: event.details,
+        entityType: event.resource,
+        entityId: event.resourceId ? parseInt(event.resourceId) : null,
+        description: event.details ? JSON.stringify(event.details) : null,
+        metadata: event.details || null,
         timestamp: new Date(),
         ipAddress: '127.0.0.1', // This would come from request context
         userAgent: 'System Monitor',

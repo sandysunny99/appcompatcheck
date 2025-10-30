@@ -1,1 +1,524 @@
-import { CompatibilityRule, ScanSession, NewScanResult, ScanResult, RuleSeverity, ResultStatus } from '@/lib/db/schema';\nimport { SecurityLogEntry, CompatibilityDataEntry } from '@/lib/upload/file-handler';\nimport { cache } from '@/lib/db/redis';\n\n// Analysis result interface\nexport interface AnalysisResult {\n  ruleId: number;\n  status: ResultStatus;\n  severity: RuleSeverity;\n  message: string;\n  details: any;\n  recommendations: string;\n  affectedComponents: string[];\n  metadata: any;\n  confidence: number; // 0-1 confidence score\n}\n\n// AI Analysis Context\nexport interface AnalysisContext {\n  sessionId: string;\n  userId: number;\n  organizationId?: number;\n  dataType: 'security_log' | 'compatibility_data';\n  rules: CompatibilityRule[];\n  historicalData?: AnalysisResult[];\n}\n\n// Risk scoring weights\nconst SEVERITY_WEIGHTS = {\n  [RuleSeverity.LOW]: 1,\n  [RuleSeverity.MEDIUM]: 3,\n  [RuleSeverity.HIGH]: 7,\n  [RuleSeverity.CRITICAL]: 10,\n} as const;\n\n// Pattern matching engine\nexport class PatternMatcher {\n  private patterns: Map<string, RegExp> = new Map();\n\n  constructor() {\n    this.initializePatterns();\n  }\n\n  private initializePatterns() {\n    // Security vulnerability patterns\n    this.patterns.set('sql_injection', /(?:union|select|insert|update|delete|drop|exec|script)\\s*[\\(\\;]/gi);\n    this.patterns.set('xss', /(?:<script|javascript:|vbscript:|onload|onerror|onclick)/gi);\n    this.patterns.set('path_traversal', /(?:\\.\\.\\/|\\.\\.\\\\/|%2e%2e%2f|%2e%2e%5c)/gi);\n    this.patterns.set('command_injection', /(?:;\\s*(?:rm|del|format|shutdown)|\\|\\s*(?:nc|netcat|telnet))/gi);\n    this.patterns.set('authentication_bypass', /(?:admin|administrator|root).*(?:password|pwd|pass).*(?:=|:)\\s*(?:\"|')?(?:admin|password|123|blank)?/gi);\n    this.patterns.set('sensitive_data', /(?:api[_-]?key|secret|token|password|credential|private[_-]?key)\\s*[=:]\\s*[\"']?[a-zA-Z0-9+\\/]{8,}[\"']?/gi);\n    \n    // Compatibility issue patterns\n    this.patterns.set('version_conflict', /version\\s+(?:conflict|mismatch|incompatibl)/gi);\n    this.patterns.set('deprecated_api', /(?:deprecated|obsolete|legacy)\\s+(?:api|method|function)/gi);\n    this.patterns.set('missing_dependency', /(?:missing|not\\s+found|undefined)\\s+(?:dependency|module|library)/gi);\n    this.patterns.set('configuration_error', /(?:configuration|config)\\s+(?:error|invalid|missing)/gi);\n  }\n\n  match(text: string, patternName?: string): { pattern: string; matches: RegExpMatchArray[] }[] {\n    const results: { pattern: string; matches: RegExpMatchArray[] }[] = [];\n    \n    const patternsToCheck = patternName \n      ? [[patternName, this.patterns.get(patternName)!]]\n      : Array.from(this.patterns.entries());\n\n    for (const [name, pattern] of patternsToCheck) {\n      if (!pattern) continue;\n      const matches = Array.from(text.matchAll(pattern));\n      if (matches.length > 0) {\n        results.push({ pattern: name, matches });\n      }\n    }\n\n    return results;\n  }\n}\n\n// Machine Learning-inspired analysis\nexport class MLAnalyzer {\n  private featureWeights: Map<string, number> = new Map();\n  private patternMatcher: PatternMatcher;\n\n  constructor() {\n    this.patternMatcher = new PatternMatcher();\n    this.initializeFeatureWeights();\n  }\n\n  private initializeFeatureWeights() {\n    // Security feature weights\n    this.featureWeights.set('sql_injection', 0.9);\n    this.featureWeights.set('xss', 0.8);\n    this.featureWeights.set('path_traversal', 0.85);\n    this.featureWeights.set('command_injection', 0.95);\n    this.featureWeights.set('authentication_bypass', 0.9);\n    this.featureWeights.set('sensitive_data', 0.7);\n    \n    // Compatibility feature weights\n    this.featureWeights.set('version_conflict', 0.8);\n    this.featureWeights.set('deprecated_api', 0.6);\n    this.featureWeights.set('missing_dependency', 0.75);\n    this.featureWeights.set('configuration_error', 0.7);\n  }\n\n  extractFeatures(data: SecurityLogEntry | CompatibilityDataEntry): Map<string, number> {\n    const features = new Map<string, number>();\n    \n    // Convert data to searchable text\n    const searchText = JSON.stringify(data).toLowerCase();\n    \n    // Pattern-based features\n    const patternMatches = this.patternMatcher.match(searchText);\n    for (const { pattern, matches } of patternMatches) {\n      const weight = this.featureWeights.get(pattern) || 0.5;\n      features.set(`pattern_${pattern}`, matches.length * weight);\n    }\n    \n    // Statistical features\n    if ('severity' in data) {\n      const severityScore = SEVERITY_WEIGHTS[data.severity as RuleSeverity] || 1;\n      features.set('severity_score', severityScore / 10); // Normalize to 0-1\n    }\n    \n    // Text complexity features\n    const messageLength = ('message' in data ? data.message?.length : 0) || 0;\n    features.set('message_complexity', Math.min(messageLength / 1000, 1)); // Normalize\n    \n    // Tool-specific features\n    if ('tool' in data) {\n      const toolReliability = this.getToolReliabilityScore(data.tool);\n      features.set('tool_reliability', toolReliability);\n    }\n    \n    return features;\n  }\n\n  private getToolReliabilityScore(tool: string): number {\n    const reliabilityMap: Record<string, number> = {\n      'sonarqube': 0.9,\n      'owasp_zap': 0.85,\n      'burp_suite': 0.9,\n      'nessus': 0.8,\n      'qualys': 0.8,\n      'veracode': 0.85,\n      'checkmarx': 0.8,\n      'fortify': 0.8,\n      'snyk': 0.85,\n      'semgrep': 0.8,\n    };\n    \n    const normalizedTool = tool.toLowerCase().replace(/\\s+/g, '_');\n    return reliabilityMap[normalizedTool] || 0.7; // Default reliability\n  }\n\n  calculateRiskScore(features: Map<string, number>, historicalData?: AnalysisResult[]): number {\n    let score = 0;\n    let totalWeight = 0;\n    \n    // Base score from features\n    for (const [feature, value] of features) {\n      const weight = this.getFeatureWeight(feature);\n      score += value * weight;\n      totalWeight += weight;\n    }\n    \n    // Normalize base score\n    const baseScore = totalWeight > 0 ? score / totalWeight : 0;\n    \n    // Adjust based on historical patterns\n    let historicalAdjustment = 0;\n    if (historicalData && historicalData.length > 0) {\n      const recentFailures = historicalData\n        .filter(r => r.status === ResultStatus.FAILED)\n        .length;\n      const totalRecent = Math.min(historicalData.length, 10);\n      historicalAdjustment = (recentFailures / totalRecent) * 0.2; // Max 20% adjustment\n    }\n    \n    return Math.min(baseScore + historicalAdjustment, 1);\n  }\n\n  private getFeatureWeight(feature: string): number {\n    if (feature.startsWith('pattern_')) {\n      const pattern = feature.replace('pattern_', '');\n      return this.featureWeights.get(pattern) || 0.5;\n    }\n    \n    const weights: Record<string, number> = {\n      'severity_score': 0.8,\n      'message_complexity': 0.3,\n      'tool_reliability': 0.6,\n    };\n    \n    return weights[feature] || 0.5;\n  }\n}\n\n// Main compatibility analysis engine\nexport class CompatibilityAnalysisEngine {\n  private mlAnalyzer: MLAnalyzer;\n  private patternMatcher: PatternMatcher;\n\n  constructor() {\n    this.mlAnalyzer = new MLAnalyzer();\n    this.patternMatcher = new PatternMatcher();\n  }\n\n  async analyzeData(\n    data: (SecurityLogEntry | CompatibilityDataEntry)[],\n    context: AnalysisContext\n  ): Promise<AnalysisResult[]> {\n    const results: AnalysisResult[] = [];\n    \n    // Cache key for historical data\n    const historicalCacheKey = `analysis_history:${context.userId}:${context.organizationId || 'personal'}`;\n    \n    try {\n      // Get historical analysis data for ML insights\n      const historicalData = await cache.get<AnalysisResult[]>(historicalCacheKey) || [];\n      \n      // Analyze each data entry against all rules\n      for (const entry of data) {\n        for (const rule of context.rules) {\n          const result = await this.analyzeEntry(entry, rule, historicalData);\n          if (result) {\n            results.push(result);\n          }\n        }\n      }\n      \n      // Update historical data cache\n      const updatedHistorical = [...historicalData, ...results].slice(-100); // Keep last 100 results\n      await cache.set(historicalCacheKey, updatedHistorical, 24 * 60 * 60); // 24 hours TTL\n      \n    } catch (error) {\n      console.error('Analysis engine error:', error);\n      throw new Error('Failed to analyze compatibility data');\n    }\n    \n    return results;\n  }\n\n  private async analyzeEntry(\n    entry: SecurityLogEntry | CompatibilityDataEntry,\n    rule: CompatibilityRule,\n    historicalData: AnalysisResult[]\n  ): Promise<AnalysisResult | null> {\n    try {\n      // Check if rule conditions match the entry\n      const matchResult = this.evaluateRuleConditions(entry, rule.conditions as any);\n      if (!matchResult.matches) {\n        return null;\n      }\n      \n      // Extract ML features\n      const features = this.mlAnalyzer.extractFeatures(entry);\n      \n      // Calculate risk score\n      const riskScore = this.mlAnalyzer.calculateRiskScore(features, historicalData);\n      \n      // Determine result status based on risk score and rule severity\n      const status = this.determineResultStatus(riskScore, rule.severity as RuleSeverity);\n      \n      // Generate detailed analysis\n      const analysis = this.generateDetailedAnalysis(entry, rule, features, matchResult);\n      \n      return {\n        ruleId: rule.id,\n        status,\n        severity: rule.severity as RuleSeverity,\n        message: analysis.message,\n        details: analysis.details,\n        recommendations: analysis.recommendations,\n        affectedComponents: analysis.affectedComponents,\n        metadata: {\n          riskScore,\n          features: Array.from(features.entries()),\n          matchedConditions: matchResult.matchedConditions,\n          confidence: this.calculateConfidence(riskScore, features),\n        },\n        confidence: this.calculateConfidence(riskScore, features),\n      };\n      \n    } catch (error) {\n      console.error('Entry analysis error:', error);\n      return null;\n    }\n  }\n\n  private evaluateRuleConditions(entry: any, conditions: any): {\n    matches: boolean;\n    matchedConditions: string[];\n  } {\n    const matchedConditions: string[] = [];\n    \n    if (!conditions || typeof conditions !== 'object') {\n      return { matches: false, matchedConditions };\n    }\n    \n    // Evaluate each condition\n    for (const [key, condition] of Object.entries(conditions)) {\n      if (this.evaluateCondition(entry, key, condition)) {\n        matchedConditions.push(key);\n      }\n    }\n    \n    // Rule matches if any condition is met (OR logic)\n    // For AND logic, change this to check if all conditions match\n    const matches = matchedConditions.length > 0;\n    \n    return { matches, matchedConditions };\n  }\n\n  private evaluateCondition(entry: any, key: string, condition: any): boolean {\n    const value = this.getValueByPath(entry, key);\n    \n    if (condition === null || condition === undefined) {\n      return value === null || value === undefined;\n    }\n    \n    if (typeof condition === 'string') {\n      if (condition.startsWith('/') && condition.endsWith('/')) {\n        // Regex condition\n        const regex = new RegExp(condition.slice(1, -1), 'i');\n        return regex.test(String(value));\n      }\n      return String(value).toLowerCase().includes(condition.toLowerCase());\n    }\n    \n    if (typeof condition === 'object') {\n      // Complex condition object\n      if (condition.$regex) {\n        const regex = new RegExp(condition.$regex, condition.$options || 'i');\n        return regex.test(String(value));\n      }\n      \n      if (condition.$in && Array.isArray(condition.$in)) {\n        return condition.$in.includes(value);\n      }\n      \n      if (condition.$gt !== undefined) {\n        return Number(value) > Number(condition.$gt);\n      }\n      \n      if (condition.$lt !== undefined) {\n        return Number(value) < Number(condition.$lt);\n      }\n      \n      if (condition.$eq !== undefined) {\n        return value === condition.$eq;\n      }\n    }\n    \n    return value === condition;\n  }\n\n  private getValueByPath(obj: any, path: string): any {\n    return path.split('.').reduce((current, key) => {\n      return current && current[key] !== undefined ? current[key] : undefined;\n    }, obj);\n  }\n\n  private determineResultStatus(riskScore: number, severity: RuleSeverity): ResultStatus {\n    const severityThresholds = {\n      [RuleSeverity.LOW]: 0.3,\n      [RuleSeverity.MEDIUM]: 0.5,\n      [RuleSeverity.HIGH]: 0.7,\n      [RuleSeverity.CRITICAL]: 0.9,\n    };\n    \n    const threshold = severityThresholds[severity];\n    \n    if (riskScore >= threshold) {\n      return ResultStatus.FAILED;\n    } else if (riskScore >= threshold * 0.7) {\n      return ResultStatus.WARNING;\n    } else {\n      return ResultStatus.PASSED;\n    }\n  }\n\n  private generateDetailedAnalysis(\n    entry: SecurityLogEntry | CompatibilityDataEntry,\n    rule: CompatibilityRule,\n    features: Map<string, number>,\n    matchResult: { matches: boolean; matchedConditions: string[] }\n  ) {\n    // Generate context-aware message\n    let message = rule.description || `Compatibility issue detected: ${rule.name}`;\n    \n    // Add specific details based on matched patterns\n    const patternFeatures = Array.from(features.entries())\n      .filter(([key]) => key.startsWith('pattern_'))\n      .filter(([, value]) => value > 0);\n    \n    if (patternFeatures.length > 0) {\n      const patterns = patternFeatures.map(([key]) => key.replace('pattern_', ''));\n      message += ` Detected patterns: ${patterns.join(', ')}`;\n    }\n    \n    // Extract affected components\n    const affectedComponents: string[] = [];\n    \n    if ('tool' in entry) {\n      affectedComponents.push(`Security Tool: ${entry.tool}`);\n    }\n    \n    if ('application' in entry) {\n      affectedComponents.push(`Application: ${entry.application}`);\n      if (entry.version) {\n        affectedComponents.push(`Version: ${entry.version}`);\n      }\n    }\n    \n    // Generate recommendations\n    let recommendations = rule.recommendations || 'No specific recommendations available.';\n    \n    if (patternFeatures.some(([key]) => key.includes('sql_injection'))) {\n      recommendations += ' Consider implementing parameterized queries and input validation.';\n    }\n    \n    if (patternFeatures.some(([key]) => key.includes('xss'))) {\n      recommendations += ' Implement proper output encoding and Content Security Policy.';\n    }\n    \n    if (patternFeatures.some(([key]) => key.includes('version_conflict'))) {\n      recommendations += ' Update dependencies to compatible versions.';\n    }\n    \n    return {\n      message,\n      details: {\n        originalEntry: entry,\n        matchedConditions: matchResult.matchedConditions,\n        detectedPatterns: patternFeatures.map(([key, value]) => ({ pattern: key, score: value })),\n        analysisTimestamp: new Date().toISOString(),\n      },\n      recommendations,\n      affectedComponents,\n    };\n  }\n\n  private calculateConfidence(riskScore: number, features: Map<string, number>): number {\n    // Base confidence from risk score\n    let confidence = riskScore;\n    \n    // Adjust based on number of features\n    const featureCount = features.size;\n    const featureBonus = Math.min(featureCount / 10, 0.2); // Max 20% bonus\n    confidence += featureBonus;\n    \n    // Adjust based on pattern matches\n    const patternMatches = Array.from(features.entries())\n      .filter(([key, value]) => key.startsWith('pattern_') && value > 0)\n      .length;\n    \n    if (patternMatches > 0) {\n      confidence += Math.min(patternMatches / 5, 0.3); // Max 30% bonus\n    }\n    \n    return Math.min(confidence, 1); // Cap at 1.0\n  }\n}\n\n// Utility function to calculate overall risk score for a scan session\nexport function calculateOverallRiskScore(results: AnalysisResult[]): number {\n  if (results.length === 0) return 0;\n  \n  const weights = {\n    [ResultStatus.FAILED]: 1.0,\n    [ResultStatus.WARNING]: 0.6,\n    [ResultStatus.PASSED]: 0.1,\n    [ResultStatus.ERROR]: 0.8,\n  };\n  \n  const severityMultipliers = {\n    [RuleSeverity.CRITICAL]: 2.0,\n    [RuleSeverity.HIGH]: 1.5,\n    [RuleSeverity.MEDIUM]: 1.0,\n    [RuleSeverity.LOW]: 0.5,\n  };\n  \n  let totalScore = 0;\n  let maxPossibleScore = 0;\n  \n  for (const result of results) {\n    const statusWeight = weights[result.status];\n    const severityMultiplier = severityMultipliers[result.severity];\n    const confidence = result.confidence;\n    \n    const resultScore = statusWeight * severityMultiplier * confidence;\n    const maxResultScore = 1.0 * 2.0 * 1.0; // Max possible for any result\n    \n    totalScore += resultScore;\n    maxPossibleScore += maxResultScore;\n  }\n  \n  return maxPossibleScore > 0 ? Math.min(totalScore / maxPossibleScore, 1) : 0;\n}
+import { SecurityLogEntry, CompatibilityDataEntry } from '@/lib/upload/file-handler';
+import { cache } from '@/lib/db/redis';
+
+// Define types locally since schema doesn't have them
+export enum RuleSeverity {
+  LOW = 'low',
+  MEDIUM = 'medium',
+  HIGH = 'high',
+  CRITICAL = 'critical',
+}
+
+export enum ResultStatus {
+  PASSED = 'passed',
+  WARNING = 'warning',
+  FAILED = 'failed',
+  ERROR = 'error',
+}
+
+export interface CompatibilityRule {
+  id: string | number;
+  name: string;
+  description?: string;
+  category: string;
+  severity: string;
+  conditions?: any;
+  recommendations?: string;
+  isActive: boolean;
+}
+
+// Analysis result interface
+export interface AnalysisResult {
+  ruleId: string | number;
+  status: ResultStatus;
+  severity: RuleSeverity;
+  message: string;
+  details: any;
+  recommendations: string;
+  affectedComponents: string[];
+  metadata: any;
+  confidence: number; // 0-1 confidence score
+}
+
+// AI Analysis Context
+export interface AnalysisContext {
+  sessionId: string;
+  userId: number;
+  organizationId?: number;
+  dataType: 'security_log' | 'compatibility_data';
+  rules: CompatibilityRule[];
+  historicalData?: AnalysisResult[];
+}
+
+// Risk scoring weights
+const SEVERITY_WEIGHTS = {
+  [RuleSeverity.LOW]: 1,
+  [RuleSeverity.MEDIUM]: 3,
+  [RuleSeverity.HIGH]: 7,
+  [RuleSeverity.CRITICAL]: 10,
+} as const;
+
+// Pattern matching engine
+export class PatternMatcher {
+  private patterns: Map<string, RegExp> = new Map();
+
+  constructor() {
+    this.initializePatterns();
+  }
+
+  private initializePatterns() {
+    // Security vulnerability patterns
+    this.patterns.set('sql_injection', /(?:union|select|insert|update|delete|drop|exec|script)\s*[(;]/gi);
+    this.patterns.set('xss', /(?:<script|javascript:|vbscript:|onload|onerror|onclick)/gi);
+    this.patterns.set('path_traversal', /(?:\.\.\/|\.\.\\/|%2e%2e%2f|%2e%2e%5c)/gi);
+    this.patterns.set('command_injection', /(?:;\s*(?:rm|del|format|shutdown)|\|\s*(?:nc|netcat|telnet))/gi);
+    this.patterns.set('authentication_bypass', /(?:admin|administrator|root).*(?:password|pwd|pass).*(?:=|:)\s*(?:"|')?(?:admin|password|123|blank)?/gi);
+    this.patterns.set('sensitive_data', /(?:api[_-]?key|secret|token|password|credential|private[_-]?key)\s*[=:]\s*["']?[a-zA-Z0-9+\/]{8,}["']?/gi);
+    
+    // Compatibility issue patterns
+    this.patterns.set('version_conflict', /version\s+(?:conflict|mismatch|incompatibl)/gi);
+    this.patterns.set('deprecated_api', /(?:deprecated|obsolete|legacy)\s+(?:api|method|function)/gi);
+    this.patterns.set('missing_dependency', /(?:missing|not\s+found|undefined)\s+(?:dependency|module|library)/gi);
+    this.patterns.set('configuration_error', /(?:configuration|config)\s+(?:error|invalid|missing)/gi);
+  }
+
+  match(text: string, patternName?: string): { pattern: string; matches: RegExpMatchArray[] }[] {
+    const results: { pattern: string; matches: RegExpMatchArray[] }[] = [];
+    
+    const patternsToCheck = patternName 
+      ? [[patternName, this.patterns.get(patternName)!]]
+      : Array.from(this.patterns.entries());
+
+    for (const [name, pattern] of patternsToCheck) {
+      if (!pattern) continue;
+      const matches = Array.from(text.matchAll(pattern));
+      if (matches.length > 0) {
+        results.push({ pattern: name, matches });
+      }
+    }
+
+    return results;
+  }
+}
+
+// Machine Learning-inspired analysis
+export class MLAnalyzer {
+  private featureWeights: Map<string, number> = new Map();
+  private patternMatcher: PatternMatcher;
+
+  constructor() {
+    this.patternMatcher = new PatternMatcher();
+    this.initializeFeatureWeights();
+  }
+
+  private initializeFeatureWeights() {
+    // Security feature weights
+    this.featureWeights.set('sql_injection', 0.9);
+    this.featureWeights.set('xss', 0.8);
+    this.featureWeights.set('path_traversal', 0.85);
+    this.featureWeights.set('command_injection', 0.95);
+    this.featureWeights.set('authentication_bypass', 0.9);
+    this.featureWeights.set('sensitive_data', 0.7);
+    
+    // Compatibility feature weights
+    this.featureWeights.set('version_conflict', 0.8);
+    this.featureWeights.set('deprecated_api', 0.6);
+    this.featureWeights.set('missing_dependency', 0.75);
+    this.featureWeights.set('configuration_error', 0.7);
+  }
+
+  extractFeatures(data: SecurityLogEntry | CompatibilityDataEntry): Map<string, number> {
+    const features = new Map<string, number>();
+    
+    // Convert data to searchable text
+    const searchText = JSON.stringify(data).toLowerCase();
+    
+    // Pattern-based features
+    const patternMatches = this.patternMatcher.match(searchText);
+    for (const { pattern, matches } of patternMatches) {
+      const weight = this.featureWeights.get(pattern) || 0.5;
+      features.set(`pattern_${pattern}`, matches.length * weight);
+    }
+    
+    // Statistical features
+    if ('severity' in data) {
+      const severityScore = SEVERITY_WEIGHTS[data.severity as RuleSeverity] || 1;
+      features.set('severity_score', severityScore / 10); // Normalize to 0-1
+    }
+    
+    // Text complexity features
+    const messageLength = ('message' in data ? data.message?.length : 0) || 0;
+    features.set('message_complexity', Math.min(messageLength / 1000, 1)); // Normalize
+    
+    // Tool-specific features
+    if ('tool' in data) {
+      const toolReliability = this.getToolReliabilityScore(data.tool);
+      features.set('tool_reliability', toolReliability);
+    }
+    
+    return features;
+  }
+
+  private getToolReliabilityScore(tool: string): number {
+    const reliabilityMap: Record<string, number> = {
+      'sonarqube': 0.9,
+      'owasp_zap': 0.85,
+      'burp_suite': 0.9,
+      'nessus': 0.8,
+      'qualys': 0.8,
+      'veracode': 0.85,
+      'checkmarx': 0.8,
+      'fortify': 0.8,
+      'snyk': 0.85,
+      'semgrep': 0.8,
+    };
+    
+    const normalizedTool = tool.toLowerCase().replace(/\s+/g, '_');
+    return reliabilityMap[normalizedTool] || 0.7; // Default reliability
+  }
+
+  calculateRiskScore(features: Map<string, number>, historicalData?: AnalysisResult[]): number {
+    let score = 0;
+    let totalWeight = 0;
+    
+    // Base score from features
+    for (const [feature, value] of features) {
+      const weight = this.getFeatureWeight(feature);
+      score += value * weight;
+      totalWeight += weight;
+    }
+    
+    // Normalize base score
+    const baseScore = totalWeight > 0 ? score / totalWeight : 0;
+    
+    // Adjust based on historical patterns
+    let historicalAdjustment = 0;
+    if (historicalData && historicalData.length > 0) {
+      const recentFailures = historicalData
+        .filter(r => r.status === ResultStatus.FAILED)
+        .length;
+      const totalRecent = Math.min(historicalData.length, 10);
+      historicalAdjustment = (recentFailures / totalRecent) * 0.2; // Max 20% adjustment
+    }
+    
+    return Math.min(baseScore + historicalAdjustment, 1);
+  }
+
+  private getFeatureWeight(feature: string): number {
+    if (feature.startsWith('pattern_')) {
+      const pattern = feature.replace('pattern_', '');
+      return this.featureWeights.get(pattern) || 0.5;
+    }
+    
+    const weights: Record<string, number> = {
+      'severity_score': 0.8,
+      'message_complexity': 0.3,
+      'tool_reliability': 0.6,
+    };
+    
+    return weights[feature] || 0.5;
+  }
+}
+
+// Main compatibility analysis engine
+export class CompatibilityAnalysisEngine {
+  private mlAnalyzer: MLAnalyzer;
+  private patternMatcher: PatternMatcher;
+
+  constructor() {
+    this.mlAnalyzer = new MLAnalyzer();
+    this.patternMatcher = new PatternMatcher();
+  }
+
+  async analyzeData(
+    data: (SecurityLogEntry | CompatibilityDataEntry)[],
+    context: AnalysisContext
+  ): Promise<AnalysisResult[]> {
+    const results: AnalysisResult[] = [];
+    
+    // Cache key for historical data
+    const historicalCacheKey = `analysis_history:${context.userId}:${context.organizationId || 'personal'}`;
+    
+    try {
+      // Get historical analysis data for ML insights
+      const historicalData = await cache.get<AnalysisResult[]>(historicalCacheKey) || [];
+      
+      // Analyze each data entry against all rules
+      for (const entry of data) {
+        for (const rule of context.rules) {
+          const result = await this.analyzeEntry(entry, rule, historicalData);
+          if (result) {
+            results.push(result);
+          }
+        }
+      }
+      
+      // Update historical data cache
+      const updatedHistorical = [...historicalData, ...results].slice(-100); // Keep last 100 results
+      await cache.set(historicalCacheKey, updatedHistorical, 24 * 60 * 60); // 24 hours TTL
+      
+    } catch (error) {
+      console.error('Analysis engine error:', error);
+      throw new Error('Failed to analyze compatibility data');
+    }
+    
+    return results;
+  }
+
+  private async analyzeEntry(
+    entry: SecurityLogEntry | CompatibilityDataEntry,
+    rule: CompatibilityRule,
+    historicalData: AnalysisResult[]
+  ): Promise<AnalysisResult | null> {
+    try {
+      // Check if rule conditions match the entry
+      const matchResult = this.evaluateRuleConditions(entry, rule.conditions as any);
+      if (!matchResult.matches) {
+        return null;
+      }
+      
+      // Extract ML features
+      const features = this.mlAnalyzer.extractFeatures(entry);
+      
+      // Calculate risk score
+      const riskScore = this.mlAnalyzer.calculateRiskScore(features, historicalData);
+      
+      // Determine result status based on risk score and rule severity
+      const status = this.determineResultStatus(riskScore, rule.severity as RuleSeverity);
+      
+      // Generate detailed analysis
+      const analysis = this.generateDetailedAnalysis(entry, rule, features, matchResult);
+      
+      return {
+        ruleId: rule.id,
+        status,
+        severity: rule.severity as RuleSeverity,
+        message: analysis.message,
+        details: analysis.details,
+        recommendations: analysis.recommendations,
+        affectedComponents: analysis.affectedComponents,
+        metadata: {
+          riskScore,
+          features: Array.from(features.entries()),
+          matchedConditions: matchResult.matchedConditions,
+          confidence: this.calculateConfidence(riskScore, features),
+        },
+        confidence: this.calculateConfidence(riskScore, features),
+      };
+      
+    } catch (error) {
+      console.error('Entry analysis error:', error);
+      return null;
+    }
+  }
+
+  private evaluateRuleConditions(entry: any, conditions: any): {
+    matches: boolean;
+    matchedConditions: string[];
+  } {
+    const matchedConditions: string[] = [];
+    
+    if (!conditions || typeof conditions !== 'object') {
+      return { matches: false, matchedConditions };
+    }
+    
+    // Evaluate each condition
+    for (const [key, condition] of Object.entries(conditions)) {
+      if (this.evaluateCondition(entry, key, condition)) {
+        matchedConditions.push(key);
+      }
+    }
+    
+    // Rule matches if any condition is met (OR logic)
+    // For AND logic, change this to check if all conditions match
+    const matches = matchedConditions.length > 0;
+    
+    return { matches, matchedConditions };
+  }
+
+  private evaluateCondition(entry: any, key: string, condition: any): boolean {
+    const value = this.getValueByPath(entry, key);
+    
+    if (condition === null || condition === undefined) {
+      return value === null || value === undefined;
+    }
+    
+    if (typeof condition === 'string') {
+      if (condition.startsWith('/') && condition.endsWith('/')) {
+        // Regex condition
+        const regex = new RegExp(condition.slice(1, -1), 'i');
+        return regex.test(String(value));
+      }
+      return String(value).toLowerCase().includes(condition.toLowerCase());
+    }
+    
+    if (typeof condition === 'object') {
+      // Complex condition object
+      if (condition.$regex) {
+        const regex = new RegExp(condition.$regex, condition.$options || 'i');
+        return regex.test(String(value));
+      }
+      
+      if (condition.$in && Array.isArray(condition.$in)) {
+        return condition.$in.includes(value);
+      }
+      
+      if (condition.$gt !== undefined) {
+        return Number(value) > Number(condition.$gt);
+      }
+      
+      if (condition.$lt !== undefined) {
+        return Number(value) < Number(condition.$lt);
+      }
+      
+      if (condition.$eq !== undefined) {
+        return value === condition.$eq;
+      }
+    }
+    
+    return value === condition;
+  }
+
+  private getValueByPath(obj: any, path: string): any {
+    return path.split('.').reduce((current, key) => {
+      return current && current[key] !== undefined ? current[key] : undefined;
+    }, obj);
+  }
+
+  private determineResultStatus(riskScore: number, severity: RuleSeverity): ResultStatus {
+    const severityThresholds = {
+      [RuleSeverity.LOW]: 0.3,
+      [RuleSeverity.MEDIUM]: 0.5,
+      [RuleSeverity.HIGH]: 0.7,
+      [RuleSeverity.CRITICAL]: 0.9,
+    };
+    
+    const threshold = severityThresholds[severity];
+    
+    if (riskScore >= threshold) {
+      return ResultStatus.FAILED;
+    } else if (riskScore >= threshold * 0.7) {
+      return ResultStatus.WARNING;
+    } else {
+      return ResultStatus.PASSED;
+    }
+  }
+
+  private generateDetailedAnalysis(
+    entry: SecurityLogEntry | CompatibilityDataEntry,
+    rule: CompatibilityRule,
+    features: Map<string, number>,
+    matchResult: { matches: boolean; matchedConditions: string[] }
+  ) {
+    // Generate context-aware message
+    let message = rule.description || `Compatibility issue detected: ${rule.name}`;
+    
+    // Add specific details based on matched patterns
+    const patternFeatures = Array.from(features.entries())
+      .filter(([key]) => key.startsWith('pattern_'))
+      .filter(([, value]) => value > 0);
+    
+    if (patternFeatures.length > 0) {
+      const patterns = patternFeatures.map(([key]) => key.replace('pattern_', ''));
+      message += ` Detected patterns: ${patterns.join(', ')}`;
+    }
+    
+    // Extract affected components
+    const affectedComponents: string[] = [];
+    
+    if ('tool' in entry) {
+      affectedComponents.push(`Security Tool: ${entry.tool}`);
+    }
+    
+    if ('application' in entry) {
+      affectedComponents.push(`Application: ${entry.application}`);
+      if (entry.version) {
+        affectedComponents.push(`Version: ${entry.version}`);
+      }
+    }
+    
+    // Generate recommendations
+    let recommendations = rule.recommendations || 'No specific recommendations available.';
+    
+    if (patternFeatures.some(([key]) => key.includes('sql_injection'))) {
+      recommendations += ' Consider implementing parameterized queries and input validation.';
+    }
+    
+    if (patternFeatures.some(([key]) => key.includes('xss'))) {
+      recommendations += ' Implement proper output encoding and Content Security Policy.';
+    }
+    
+    if (patternFeatures.some(([key]) => key.includes('version_conflict'))) {
+      recommendations += ' Update dependencies to compatible versions.';
+    }
+    
+    return {
+      message,
+      details: {
+        originalEntry: entry,
+        matchedConditions: matchResult.matchedConditions,
+        detectedPatterns: patternFeatures.map(([key, value]) => ({ pattern: key, score: value })),
+        analysisTimestamp: new Date().toISOString(),
+      },
+      recommendations,
+      affectedComponents,
+    };
+  }
+
+  private calculateConfidence(riskScore: number, features: Map<string, number>): number {
+    // Base confidence from risk score
+    let confidence = riskScore;
+    
+    // Adjust based on number of features
+    const featureCount = features.size;
+    const featureBonus = Math.min(featureCount / 10, 0.2); // Max 20% bonus
+    confidence += featureBonus;
+    
+    // Adjust based on pattern matches
+    const patternMatches = Array.from(features.entries())
+      .filter(([key, value]) => key.startsWith('pattern_') && value > 0)
+      .length;
+    
+    if (patternMatches > 0) {
+      confidence += Math.min(patternMatches / 5, 0.3); // Max 30% bonus
+    }
+    
+    return Math.min(confidence, 1); // Cap at 1.0
+  }
+}
+
+// Utility function to calculate overall risk score for a scan session
+export function calculateOverallRiskScore(results: AnalysisResult[]): number {
+  if (results.length === 0) return 0;
+  
+  const weights = {
+    [ResultStatus.FAILED]: 1.0,
+    [ResultStatus.WARNING]: 0.6,
+    [ResultStatus.PASSED]: 0.1,
+    [ResultStatus.ERROR]: 0.8,
+  };
+  
+  const severityMultipliers = {
+    [RuleSeverity.CRITICAL]: 2.0,
+    [RuleSeverity.HIGH]: 1.5,
+    [RuleSeverity.MEDIUM]: 1.0,
+    [RuleSeverity.LOW]: 0.5,
+  };
+  
+  let totalScore = 0;
+  let maxPossibleScore = 0;
+  
+  for (const result of results) {
+    const statusWeight = weights[result.status];
+    const severityMultiplier = severityMultipliers[result.severity];
+    const confidence = result.confidence;
+    
+    const resultScore = statusWeight * severityMultiplier * confidence;
+    const maxResultScore = 1.0 * 2.0 * 1.0; // Max possible for any result
+    
+    totalScore += resultScore;
+    maxPossibleScore += maxResultScore;
+  }
+  
+  return maxPossibleScore > 0 ? Math.min(totalScore / maxPossibleScore, 1) : 0;
+}
