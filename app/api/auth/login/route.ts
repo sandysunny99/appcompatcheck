@@ -5,7 +5,7 @@ import { z } from 'zod'
 import { db } from '@/lib/db'
 import { users } from '@/lib/db/schema'
 import { eq } from 'drizzle-orm'
-import { rateLimit } from '@/lib/rate-limit'
+import { authRateLimiter, checkRateLimit } from '@/lib/auth/rate-limit'
 
 const loginSchema = z.object({
   email: z.string().email('Invalid email address'),
@@ -15,29 +15,10 @@ const loginSchema = z.object({
 
 export async function POST(request: NextRequest) {
   try {
-    // Rate limiting
-    const identifier = request.ip ?? 'anonymous'
-    const { success, limit, reset, remaining } = await rateLimit(
-      identifier,
-      10, // 10 attempts
-      60 * 15 // 15 minutes
-    )
-
-    if (!success) {
-      return NextResponse.json(
-        {
-          error: 'Too many login attempts',
-          message: 'Please try again later',
-        },
-        {
-          status: 429,
-          headers: {
-            'X-RateLimit-Limit': limit.toString(),
-            'X-RateLimit-Remaining': remaining.toString(),
-            'X-RateLimit-Reset': reset.toString(),
-          },
-        }
-      )
+    // Apply comprehensive rate limiting
+    const rateLimitResponse = await checkRateLimit(request, authRateLimiter);
+    if (rateLimitResponse) {
+      return rateLimitResponse;
     }
 
     const body = await request.json()

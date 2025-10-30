@@ -3,7 +3,7 @@ import { redirect } from 'next/navigation';
 import { getSession } from '@/lib/auth/session';
 import { hasPermission, Permission } from '@/lib/auth/permissions';
 import { AdminDashboard } from '@/components/admin/AdminDashboard';
-import { LoadingSpinner } from '@/components/ui/loading';
+import { Loader2 } from 'lucide-react';
 
 export default async function AdminPage() {
   const session = await getSession();
@@ -26,7 +26,11 @@ export default async function AdminPage() {
         </p>
       </div>
 
-      <Suspense fallback={<LoadingSpinner />}>
+      <Suspense fallback={
+        <div className="flex items-center justify-center py-12">
+          <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        </div>
+      }>
         <AdminDashboard userId={session.user.id} userRole={session.user.role} />
       </Suspense>
     </div>

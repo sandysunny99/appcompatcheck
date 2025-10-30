@@ -1,468 +1,214 @@
 'use client';
 
 import { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
-import { Badge } from '@/components/ui/badge';
-import { Progress } from '@/components/ui/progress';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from '@/components/ui/dialog';
-import { 
-  FileText, 
-  Download, 
-  Settings, 
-  Filter,
-  FileSpreadsheet,
-  FileImage,
-  Loader2,
-  CheckCircle,
-  AlertCircle
-} from 'lucide-react';
-import { ReportGenerator, ReportOptions, generateReportFilename } from '@/lib/reports/report-generator';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Loader2, Download, FileText, Clock, Server } from 'lucide-react';
+import { useToast } from '@/components/ui/use-toast';
 
 interface ReportGeneratorProps {
-  scanId: number;
-  sessionId: string;
-  fileName: string;
-  disabled?: boolean;
+  userId: number;
+  organizationId: number;
 }
 
-interface GenerationStatus {
-  isGenerating: boolean;
-  progress: number;
-  status: string;
-  error?: string;
-}
-
-export function ReportGeneratorComponent({ scanId, sessionId, fileName, disabled }: ReportGeneratorProps) {
-  const [isOpen, setIsOpen] = useState(false);
-  const [generationStatus, setGenerationStatus] = useState<GenerationStatus>({
-    isGenerating: false,
-    progress: 0,
-    status: 'Ready to generate',
-  });
-
-  const [options, setOptions] = useState<ReportOptions>({
-    format: 'pdf',
-    includeCharts: true,
-    includeSummary: true,
-    includeDetails: true,
-    includeRecommendations: true,
-    branding: {
-      companyName: 'AppCompatCheck',
-      reportTitle: 'Compatibility Analysis Report',
-    },
-  });
-
-  const [filters, setFilters] = useState({
-    severity: [] as string[],
-    status: [] as string[],
-    category: [] as string[],
-  });
+export function ReportGenerator({ userId, organizationId }: ReportGeneratorProps) {
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [reportType, setReportType] = useState('comprehensive');
+  const [includeDetails, setIncludeDetails] = useState(true);
+  const [generatedReport, setGeneratedReport] = useState<any>(null);
+  const { toast } = useToast();
 
   const handleGenerateReport = async () => {
+    setIsGenerating(true);
     try {
-      setGenerationStatus({
-        isGenerating: true,
-        progress: 10,
-        status: 'Fetching scan data...',
-      });
-
-      // Fetch the complete scan data
-      const response = await fetch(`/api/reports/data/${scanId}`);
-      if (!response.ok) {
-        throw new Error('Failed to fetch scan data');
-      }
-
-      setGenerationStatus(prev => ({
-        ...prev,
-        progress: 30,
-        status: 'Processing report data...',
-      }));
-
-      const reportData = await response.json();
-
-      setGenerationStatus(prev => ({
-        ...prev,
-        progress: 50,
-        status: 'Generating report...',
-      }));
-
-      // Apply filters if any are selected
-      const reportOptions: ReportOptions = {
-        ...options,
-        filterBy: {
-          severity: filters.severity.length > 0 ? filters.severity : undefined,
-          status: filters.status.length > 0 ? filters.status : undefined,
-          category: filters.category.length > 0 ? filters.category : undefined,
-        },
-      };
-
-      // Generate the report
-      const generator = new ReportGenerator(reportData, reportOptions);
-      const blob = await generator.generate();
-
-      setGenerationStatus(prev => ({
-        ...prev,
-        progress: 90,
-        status: 'Creating download...',
-      }));
-
-      // Create download link
-      const url = URL.createObjectURL(blob);
-      const filename = generateReportFilename(sessionId, options.format);
-
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = filename;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(url);
-
-      setGenerationStatus({
-        isGenerating: false,
-        progress: 100,
-        status: 'Report generated successfully!',
-      });
-
-      // Log the report generation
-      await fetch('/api/reports/log', {
+      const response = await fetch('/api/reports/generate', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+        },
         body: JSON.stringify({
-          scanId,
-          format: options.format,
-          options: reportOptions,
+          reportType,
+          filters: {
+            userId,
+            organizationId,
+          },
+          includeDetails,
         }),
       });
 
-      setTimeout(() => {
-        setIsOpen(false);
-        setGenerationStatus({
-          isGenerating: false,
-          progress: 0,
-          status: 'Ready to generate',
-        });
-      }, 2000);
+      if (!response.ok) {
+        throw new Error('Failed to generate report');
+      }
 
-    } catch (error) {
-      console.error('Report generation failed:', error);
-      setGenerationStatus({
-        isGenerating: false,
-        progress: 0,
-        status: 'Ready to generate',
-        error: error instanceof Error ? error.message : 'Unknown error occurred',
+      const data = await response.json();
+      setGeneratedReport(data);
+
+      toast({
+        title: 'Report Generated',
+        description: `${data.file.filename} has been created successfully.`,
       });
+    } catch (error) {
+      console.error('Report generation error:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to generate report. Please try again.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsGenerating(false);
     }
   };
 
-  const handleFormatChange = (format: string) => {
-    setOptions(prev => ({ ...prev, format: format as 'pdf' | 'excel' | 'csv' }));
-  };
+  const handleDownloadReport = () => {
+    if (!generatedReport) return;
 
-  const handleOptionChange = (key: keyof ReportOptions, value: any) => {
-    setOptions(prev => ({ ...prev, [key]: value }));
-  };
-
-  const handleFilterChange = (type: keyof typeof filters, value: string, checked: boolean) => {
-    setFilters(prev => ({
-      ...prev,
-      [type]: checked 
-        ? [...prev[type], value]
-        : prev[type].filter(item => item !== value),
-    }));
-  };
-
-  const getFormatIcon = (format: string) => {
-    switch (format) {
-      case 'pdf': return <FileText className="w-4 h-4" />;
-      case 'excel': return <FileSpreadsheet className="w-4 h-4" />;
-      case 'csv': return <FileImage className="w-4 h-4" />;
-      default: return <FileText className="w-4 h-4" />;
-    }
-  };
-
-  const getFormatDescription = (format: string) => {
-    switch (format) {
-      case 'pdf': return 'Professional PDF report with charts and formatting';
-      case 'excel': return 'Detailed Excel workbook with multiple sheets';
-      case 'csv': return 'Simple CSV file for data analysis';
-      default: return '';
-    }
+    const dataStr = JSON.stringify(generatedReport.report, null, 2);
+    const dataBlob = new Blob([dataStr], { type: 'application/json' });
+    const url = URL.createObjectURL(dataBlob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = generatedReport.file.filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={setIsOpen}>
-      <DialogTrigger asChild>
-        <Button variant="outline" disabled={disabled}>
-          <Download className="w-4 h-4 mr-2" />
-          Generate Report
-        </Button>
-      </DialogTrigger>
-      
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <FileText className="w-5 h-5" />
-            Generate Report
-          </DialogTitle>
-          <DialogDescription>
-            Create a comprehensive report for scan: {fileName}
-          </DialogDescription>
-        </DialogHeader>
-
-        <div className="space-y-6">
-          {/* Format Selection */}
-          <div className="space-y-3">
-            <Label className="text-base font-medium">Report Format</Label>
-            <div className="grid grid-cols-3 gap-3">
-              {(['pdf', 'excel', 'csv'] as const).map((format) => (
-                <Card 
-                  key={format}
-                  className={`cursor-pointer transition-all ${
-                    options.format === format 
-                      ? 'border-blue-500 bg-blue-50' 
-                      : 'hover:border-gray-300'
-                  }`}
-                  onClick={() => handleFormatChange(format)}
-                >
-                  <CardContent className="p-4 text-center">
-                    <div className="flex flex-col items-center gap-2">
-                      {getFormatIcon(format)}
-                      <span className="font-medium">{format.toUpperCase()}</span>
-                      <p className="text-xs text-gray-600">
-                        {getFormatDescription(format)}
-                      </p>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
+    <Card>
+      <CardHeader>
+        <CardTitle>Generate New Report</CardTitle>
+        <CardDescription>
+          Create a comprehensive compatibility analysis report with timestamp and hostname
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-6">
+        {/* Report Configuration */}
+        <div className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="report-type">Report Type</Label>
+            <Select value={reportType} onValueChange={setReportType}>
+              <SelectTrigger id="report-type">
+                <SelectValue placeholder="Select report type" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="comprehensive">Comprehensive Analysis</SelectItem>
+                <SelectItem value="security">Security Focused</SelectItem>
+                <SelectItem value="compatibility">Compatibility Check</SelectItem>
+                <SelectItem value="performance">Performance Metrics</SelectItem>
+                <SelectItem value="summary">Executive Summary</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
 
-          {/* Content Options */}
-          <div className="space-y-3">
-            <Label className="text-base font-medium">Content Options</Label>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="includeSummary"
-                  checked={options.includeSummary}
-                  onCheckedChange={(checked) => handleOptionChange('includeSummary', checked)}
-                />
-                <Label htmlFor="includeSummary">Executive Summary</Label>
-              </div>
-              
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="includeDetails"
-                  checked={options.includeDetails}
-                  onCheckedChange={(checked) => handleOptionChange('includeDetails', checked)}
-                />
-                <Label htmlFor="includeDetails">Detailed Results</Label>
-              </div>
-              
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="includeRecommendations"
-                  checked={options.includeRecommendations}
-                  onCheckedChange={(checked) => handleOptionChange('includeRecommendations', checked)}
-                />
-                <Label htmlFor="includeRecommendations">Recommendations</Label>
-              </div>
-              
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="includeCharts"
-                  checked={options.includeCharts}
-                  onCheckedChange={(checked) => handleOptionChange('includeCharts', checked)}
-                  disabled={options.format === 'csv'}
-                />
-                <Label htmlFor="includeCharts">Charts & Graphs</Label>
-              </div>
-            </div>
-          </div>
-
-          {/* Filters */}
-          <div className="space-y-3">
-            <Label className="text-base font-medium flex items-center gap-2">
-              <Filter className="w-4 h-4" />
-              Filters (Optional)
+          <div className="flex items-center space-x-2">
+            <input
+              type="checkbox"
+              id="include-details"
+              checked={includeDetails}
+              onChange={(e) => setIncludeDetails(e.target.checked)}
+              className="h-4 w-4 rounded border-gray-300"
+            />
+            <Label htmlFor="include-details" className="text-sm font-normal">
+              Include detailed scan data and issue breakdowns
             </Label>
-            
-            <div className="grid grid-cols-3 gap-4">
-              {/* Severity Filter */}
-              <div>
-                <Label className="text-sm font-medium">Severity</Label>
-                <div className="space-y-2 mt-2">
-                  {['critical', 'high', 'medium', 'low'].map((severity) => (
-                    <div key={severity} className="flex items-center space-x-2">
-                      <Checkbox
-                        id={`severity-${severity}`}
-                        checked={filters.severity.includes(severity)}
-                        onCheckedChange={(checked) => 
-                          handleFilterChange('severity', severity, !!checked)
-                        }
-                      />
-                      <Label htmlFor={`severity-${severity}`} className="text-sm">
-                        {severity.charAt(0).toUpperCase() + severity.slice(1)}
-                      </Label>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Status Filter */}
-              <div>
-                <Label className="text-sm font-medium">Status</Label>
-                <div className="space-y-2 mt-2">
-                  {['fail', 'warning', 'pass', 'info'].map((status) => (
-                    <div key={status} className="flex items-center space-x-2">
-                      <Checkbox
-                        id={`status-${status}`}
-                        checked={filters.status.includes(status)}
-                        onCheckedChange={(checked) => 
-                          handleFilterChange('status', status, !!checked)
-                        }
-                      />
-                      <Label htmlFor={`status-${status}`} className="text-sm">
-                        {status.charAt(0).toUpperCase() + status.slice(1)}
-                      </Label>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Category Filter */}
-              <div>
-                <Label className="text-sm font-medium">Category</Label>
-                <div className="space-y-2 mt-2">
-                  {['security_tool', 'framework', 'library', 'configuration'].map((category) => (
-                    <div key={category} className="flex items-center space-x-2">
-                      <Checkbox
-                        id={`category-${category}`}
-                        checked={filters.category.includes(category)}
-                        onCheckedChange={(checked) => 
-                          handleFilterChange('category', category, !!checked)
-                        }
-                      />
-                      <Label htmlFor={`category-${category}`} className="text-sm">
-                        {category.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
-                      </Label>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
           </div>
-
-          {/* Branding Options */}
-          <div className="space-y-3">
-            <Label className="text-base font-medium">Branding (Optional)</Label>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="companyName">Company Name</Label>
-                <Input
-                  id="companyName"
-                  value={options.branding?.companyName || ''}
-                  onChange={(e) => handleOptionChange('branding', {
-                    ...options.branding,
-                    companyName: e.target.value,
-                  })}
-                  placeholder="Your Company Name"
-                />
-              </div>
-              <div>
-                <Label htmlFor="reportTitle">Report Title</Label>
-                <Input
-                  id="reportTitle"
-                  value={options.branding?.reportTitle || ''}
-                  onChange={(e) => handleOptionChange('branding', {
-                    ...options.branding,
-                    reportTitle: e.target.value,
-                  })}
-                  placeholder="Custom Report Title"
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* Generation Status */}
-          {(generationStatus.isGenerating || generationStatus.error) && (
-            <Card>
-              <CardContent className="p-4">
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <span className="font-medium">Generation Status</span>
-                    {generationStatus.isGenerating ? (
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                    ) : generationStatus.error ? (
-                      <AlertCircle className="w-4 h-4 text-red-500" />
-                    ) : (
-                      <CheckCircle className="w-4 h-4 text-green-500" />
-                    )}
-                  </div>
-                  
-                  {generationStatus.isGenerating && (
-                    <Progress value={generationStatus.progress} className="w-full" />
-                  )}
-                  
-                  <p className={`text-sm ${
-                    generationStatus.error ? 'text-red-600' : 'text-gray-600'
-                  }`}>
-                    {generationStatus.error || generationStatus.status}
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
-          )}
         </div>
 
-        <DialogFooter>
-          <Button 
-            variant="outline" 
-            onClick={() => setIsOpen(false)}
-            disabled={generationStatus.isGenerating}
-          >
-            Cancel
-          </Button>
-          <Button 
-            onClick={handleGenerateReport}
-            disabled={generationStatus.isGenerating}
-          >
-            {generationStatus.isGenerating ? (
-              <>
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                Generating...
-              </>
-            ) : (
-              <>
-                <Download className="w-4 h-4 mr-2" />
-                Generate Report
-              </>
-            )}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+        {/* Generate Button */}
+        <Button 
+          onClick={handleGenerateReport} 
+          disabled={isGenerating}
+          className="w-full"
+          size="lg"
+        >
+          {isGenerating ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Generating Report...
+            </>
+          ) : (
+            <>
+              <FileText className="mr-2 h-4 w-4" />
+              Generate Report
+            </>
+          )}
+        </Button>
+
+        {/* Generated Report Info */}
+        {generatedReport && (
+          <div className="mt-6 p-4 border rounded-lg bg-muted/50 space-y-3">
+            <div className="flex items-center justify-between">
+              <h3 className="font-semibold">Report Generated Successfully</h3>
+              <Button 
+                onClick={handleDownloadReport}
+                variant="outline"
+                size="sm"
+              >
+                <Download className="mr-2 h-4 w-4" />
+                Download
+              </Button>
+            </div>
+
+            <div className="space-y-2 text-sm">
+              <div className="flex items-center gap-2">
+                <FileText className="h-4 w-4 text-muted-foreground" />
+                <span className="text-muted-foreground">Filename:</span>
+                <code className="text-xs bg-background px-2 py-1 rounded">
+                  {generatedReport.file.filename}
+                </code>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <Clock className="h-4 w-4 text-muted-foreground" />
+                <span className="text-muted-foreground">Generated:</span>
+                <span>{new Date(generatedReport.report.metadata.generatedAt).toLocaleString()}</span>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <Server className="h-4 w-4 text-muted-foreground" />
+                <span className="text-muted-foreground">Hostname:</span>
+                <code className="text-xs bg-background px-2 py-1 rounded">
+                  {generatedReport.report.metadata.hostname}
+                </code>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <FileText className="h-4 w-4 text-muted-foreground" />
+                <span className="text-muted-foreground">Report ID:</span>
+                <code className="text-xs bg-background px-2 py-1 rounded">
+                  {generatedReport.report.metadata.reportId}
+                </code>
+              </div>
+            </div>
+
+            {/* Report Summary */}
+            <div className="pt-3 border-t">
+              <h4 className="font-medium mb-2">Summary</h4>
+              <div className="grid grid-cols-2 gap-2 text-sm">
+                <div>
+                  <span className="text-muted-foreground">Total Scans:</span>
+                  <span className="ml-2 font-medium">{generatedReport.report.summary.totalScans}</span>
+                </div>
+                <div>
+                  <span className="text-muted-foreground">Total Issues:</span>
+                  <span className="ml-2 font-medium">{generatedReport.report.summary.totalIssues}</span>
+                </div>
+                <div>
+                  <span className="text-muted-foreground">Critical:</span>
+                  <span className="ml-2 font-medium text-red-600">{generatedReport.report.summary.criticalIssues}</span>
+                </div>
+                <div>
+                  <span className="text-muted-foreground">Success Rate:</span>
+                  <span className="ml-2 font-medium text-green-600">{generatedReport.report.summary.scanSuccessRate}%</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+      </CardContent>
+    </Card>
   );
 }

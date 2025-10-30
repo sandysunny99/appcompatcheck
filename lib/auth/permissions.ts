@@ -29,6 +29,9 @@ export enum Permission {
   ORG_WRITE = 'org:write',
   ORG_MANAGE_USERS = 'org:manage_users',
   
+  // System permissions
+  SYSTEM_SETTINGS = 'system:settings',
+  
   // Admin permissions
   ADMIN_USERS = 'admin:users',
   ADMIN_ORGANIZATIONS = 'admin:organizations',
@@ -61,6 +64,7 @@ const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     Permission.ORG_READ,
     Permission.ORG_WRITE,
     Permission.ORG_MANAGE_USERS,
+    Permission.SYSTEM_SETTINGS,
   ],
   [UserRole.ADMIN]: [
     ...Object.values(Permission),

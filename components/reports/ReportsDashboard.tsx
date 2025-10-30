@@ -33,7 +33,7 @@ import {
   CheckCircle,
   AlertCircle
 } from 'lucide-react';
-import { ReportGeneratorComponent } from './ReportGenerator';
+import { ReportGenerator } from './ReportGenerator';
 import { formatDistanceToNow } from 'date-fns';
 
 interface ScanSummary {
@@ -100,6 +100,15 @@ export function ReportsDashboard({ userId, organizationId }: ReportsDashboardPro
       }
     } catch (error) {
       console.error('Failed to fetch activity:', error);
+    }
+  };
+
+  const handleViewReport = async (scan: ScanSummary) => {
+    try {
+      // Navigate to the scan results page
+      window.location.href = `/scan/results?session=${scan.sessionId}`;
+    } catch (error) {
+      console.error('Failed to view report:', error);
     }
   };
 
@@ -174,6 +183,9 @@ export function ReportsDashboard({ userId, organizationId }: ReportsDashboardPro
 
   return (
     <div className="space-y-6">
+      {/* Report Generator */}
+      <ReportGenerator userId={userId} organizationId={organizationId || 0} />
+
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card>
@@ -361,12 +373,15 @@ export function ReportsDashboard({ userId, organizationId }: ReportsDashboardPro
                             </div>
                           </TableCell>
                           <TableCell>
-                            <ReportGeneratorComponent
-                              scanId={scan.id}
-                              sessionId={scan.sessionId}
-                              fileName={scan.fileName}
+                            <Button
+                              variant="outline"
+                              size="sm"
                               disabled={scan.status !== 'completed'}
-                            />
+                              onClick={() => handleViewReport(scan)}
+                            >
+                              <Download className="w-4 h-4 mr-2" />
+                              View Report
+                            </Button>
                           </TableCell>
                         </TableRow>
                       ))

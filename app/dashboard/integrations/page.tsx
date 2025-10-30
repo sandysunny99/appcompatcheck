@@ -2,27 +2,26 @@ import { Suspense } from 'react';
 import { redirect } from 'next/navigation';
 import { getSession } from '@/lib/auth/session';
 import { hasPermission, Permission } from '@/lib/auth/permissions';
-import AuditDashboard from '@/components/monitoring/audit-dashboard';
+import { IntegrationsManager } from '@/components/integrations/IntegrationsManager';
 import { Loader2 } from 'lucide-react';
 
-export default async function AuditPage() {
+export default async function IntegrationsPage() {
   const session = await getSession();
   
   if (!session?.user) {
     redirect('/sign-in');
   }
 
-  // Check if user has admin system permission
-  if (!hasPermission(session.user.role, Permission.ADMIN_SYSTEM)) {
+  if (!hasPermission(session, Permission.SYSTEM_SETTINGS)) {
     redirect('/dashboard');
   }
 
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900">Audit Logs</h1>
+        <h1 className="text-3xl font-bold text-gray-900">Integrations</h1>
         <p className="text-gray-600 mt-2">
-          Review system audit logs, compliance reports, and security events.
+          Connect and manage third-party integrations for your organization.
         </p>
       </div>
 
@@ -31,7 +30,7 @@ export default async function AuditPage() {
           <Loader2 className="w-8 h-8 animate-spin text-primary" />
         </div>
       }>
-        <AuditDashboard />
+        <IntegrationsManager userId={session.user.id} />
       </Suspense>
     </div>
   );

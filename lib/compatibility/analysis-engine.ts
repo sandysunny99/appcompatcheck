@@ -70,7 +70,7 @@ export class PatternMatcher {
     // Security vulnerability patterns
     this.patterns.set('sql_injection', /(?:union|select|insert|update|delete|drop|exec|script)\s*[(;]/gi);
     this.patterns.set('xss', /(?:<script|javascript:|vbscript:|onload|onerror|onclick)/gi);
-    this.patterns.set('path_traversal', /(?:\.\.\/|\.\.\\/|%2e%2e%2f|%2e%2e%5c)/gi);
+    this.patterns.set('path_traversal', /(?:(?:\.\.)[\/\\]|%2e%2e[%2f%5c])/gi);
     this.patterns.set('command_injection', /(?:;\s*(?:rm|del|format|shutdown)|\|\s*(?:nc|netcat|telnet))/gi);
     this.patterns.set('authentication_bypass', /(?:admin|administrator|root).*(?:password|pwd|pass).*(?:=|:)\s*(?:"|')?(?:admin|password|123|blank)?/gi);
     this.patterns.set('sensitive_data', /(?:api[_-]?key|secret|token|password|credential|private[_-]?key)\s*[=:]\s*["']?[a-zA-Z0-9+\/]{8,}["']?/gi);

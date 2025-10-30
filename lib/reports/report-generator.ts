@@ -55,6 +55,12 @@ export interface ReportData {
     lastName: string;
     email: string;
   };
+  systemInfo?: {
+    lastLogin?: string;
+    deviceName?: string;
+    ipAddress?: string;
+    userAgent?: string;
+  };
 }
 
 export interface ReportOptions {

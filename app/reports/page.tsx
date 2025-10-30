@@ -3,7 +3,7 @@ import { redirect } from 'next/navigation';
 import { getSession } from '@/lib/auth/session';
 import { hasPermission, Permission } from '@/lib/auth/permissions';
 import { ReportsDashboard } from '@/components/reports/ReportsDashboard';
-import { Loading } from '@/components/ui/loading';
+import { Loader2 } from 'lucide-react';
 
 export default async function ReportsPage() {
   const session = await getSession();
@@ -25,7 +25,11 @@ export default async function ReportsPage() {
         </p>
       </div>
 
-      <Suspense fallback={<LoadingSpinner />}>
+      <Suspense fallback={
+        <div className="flex items-center justify-center py-12">
+          <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        </div>
+      }>
         <ReportsDashboard 
           userId={session.user.id} 
           organizationId={session.user.organizationId}

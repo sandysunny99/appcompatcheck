@@ -18,29 +18,28 @@ export async function POST(
 
     const { id } = params;
 
-    // Simulate sync operation
-    await new Promise(resolve => setTimeout(resolve, 2000));
+    // Simulate test connection
+    await new Promise(resolve => setTimeout(resolve, 1500));
 
-    // Mock sync result - replace with actual integration sync
-    const syncResult = {
+    // Mock test result - replace with actual integration test
+    const testResult = {
       success: true,
-      message: 'Sync completed successfully',
-      itemsProcessed: 127,
-      itemsCreated: 5,
-      itemsUpdated: 12,
-      itemsSkipped: 110,
-      errors: [],
-      lastSyncAt: new Date().toISOString(),
+      message: 'Connection successful',
+      details: {
+        apiVersion: 'v3',
+        rateLimitRemaining: 4998,
+        latency: '142ms',
+      },
     };
 
-    return NextResponse.json(syncResult);
+    return NextResponse.json(testResult);
 
   } catch (error) {
-    console.error('Integration sync failed:', error);
+    console.error('Integration test failed:', error);
     return NextResponse.json(
       { 
         success: false,
-        error: 'Sync failed',
+        error: 'Connection test failed',
         message: error.message 
       },
       { status: 500 }
