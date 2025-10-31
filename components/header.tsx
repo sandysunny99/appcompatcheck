@@ -148,7 +148,7 @@ export function Header({ user }: HeaderProps = {}) {
       <div className="container flex h-16 items-center">
         <div className="mr-4 hidden md:flex">
           <Link href="/" className="mr-6 flex items-center space-x-2">
-            <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center">
+            <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center" suppressHydrationWarning>
               <Code className="h-5 w-5 text-primary-foreground" />
             </div>
             <span className="hidden font-bold sm:inline-block">
@@ -262,7 +262,7 @@ export function Header({ user }: HeaderProps = {}) {
                   className="flex items-center space-x-2"
                   onClick={() => setIsOpen(false)}
                 >
-                  <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center">
+                  <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center" suppressHydrationWarning>
                     <Code className="h-5 w-5 text-primary-foreground" />
                   </div>
                   <span className="font-bold">AppCompatCheck</span>
@@ -322,7 +322,7 @@ export function Header({ user }: HeaderProps = {}) {
         <div className="flex flex-1 items-center justify-between space-x-2 md:justify-end">
           <div className="w-full flex-1 md:w-auto md:flex-none">
             <Link href="/" className="flex items-center space-x-2 md:hidden">
-              <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center">
+              <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center" suppressHydrationWarning>
                 <Code className="h-5 w-5 text-primary-foreground" />
               </div>
               <span className="font-bold">AppCompatCheck</span>
