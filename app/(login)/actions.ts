@@ -50,45 +50,60 @@ const signInSchema = z.object({
 });
 
 export const signIn = validatedAction(signInSchema, async (data, formData) => {
-  const { email, password } = data;
+  try {
+    const { email, password } = data;
 
-  const foundUser = await db
-    .select()
-    .from(users)
-    .where(eq(users.email, email))
-    .limit(1);
+    const foundUser = await db
+      .select()
+      .from(users)
+      .where(eq(users.email, email))
+      .limit(1);
 
-  if (foundUser.length === 0) {
+    if (foundUser.length === 0) {
+      return {
+        error: 'Invalid email or password. Please try again.',
+        email,
+        password
+      };
+    }
+
+    const user = foundUser[0];
+
+    const isPasswordValid = await comparePasswords(
+      password,
+      user.passwordHash
+    );
+
+    if (!isPasswordValid) {
+      return {
+        error: 'Invalid email or password. Please try again.',
+        email,
+        password
+      };
+    }
+
+    await Promise.all([
+      setSession(user),
+      logActivity(user.id, ActivityType.SIGN_IN)
+    ]);
+
+    // Get redirect parameter from form data, default to home page
+    const redirectTo = formData.get('redirect') as string || '/';
+    redirect(redirectTo);
+  } catch (error) {
+    // Check if this is a redirect error (which is expected behavior)
+    if (error && typeof error === 'object' && 'digest' in error && 
+        typeof (error as any).digest === 'string' && 
+        (error as any).digest.startsWith('NEXT_REDIRECT')) {
+      throw error; // Re-throw redirect errors so Next.js can handle them
+    }
+    console.error('[SignIn] Error during sign in:', error);
     return {
-      error: 'Invalid email or password. Please try again.',
-      email,
-      password
+      error: 'An unexpected error occurred. Please try again.',
+      email: data.email,
+      password: data.password
     };
   }
-
-  const user = foundUser[0];
-
-  const isPasswordValid = await comparePasswords(
-    password,
-    user.passwordHash
-  );
-
-  if (!isPasswordValid) {
-    return {
-      error: 'Invalid email or password. Please try again.',
-      email,
-      password
-    };
-  }
-
-  await Promise.all([
-    setSession(user),
-    logActivity(user.id, ActivityType.SIGN_IN)
-  ]);
-
-  // Get redirect parameter from form data, default to home page
-  const redirectTo = formData.get('redirect') as string || '/';
-  redirect(redirectTo);
 });
 
 const signUpSchema = z.object({

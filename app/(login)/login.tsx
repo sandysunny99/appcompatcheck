@@ -24,7 +24,7 @@ export function Login({ mode = 'signin' }: { mode?: 'signin' | 'signup' }) {
     <div className="min-h-[100dvh] flex flex-col justify-center py-12 px-4 sm:px-6 lg:px-8 bg-background">
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
         <div className="flex justify-center">
-          <CircleIcon className="h-12 w-12 text-primary" />
+          <CircleIcon className="h-12 w-12 text-primary" suppressHydrationWarning />
         </div>
         <h2 className="mt-6 text-center text-3xl font-extrabold text-foreground">
           {mode === 'signin'
@@ -141,7 +141,7 @@ export function Login({ mode = 'signin' }: { mode?: 'signin' | 'signup' }) {
             >
               {pending ? (
                 <>
-                  <Loader2 className="animate-spin mr-2 h-4 w-4" />
+                  <Loader2 className="animate-spin mr-2 h-4 w-4" suppressHydrationWarning />
                   Loading...
                 </>
               ) : mode === 'signin' ? (
