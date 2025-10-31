@@ -318,17 +318,15 @@ export function Header({ user }: HeaderProps = {}) {
           </SheetContent>
         </Sheet>
 
-        {/* Mobile Logo */}
-        <div className="flex flex-1 items-center justify-between space-x-2 md:justify-end">
-          <div className="w-full flex-1 md:w-auto md:flex-none">
-            <Link href="/" className="flex items-center space-x-2 md:hidden">
-              <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center" suppressHydrationWarning>
-                <Code className="h-5 w-5 text-primary-foreground" />
-              </div>
-              <span className="font-bold">AppCompatCheck</span>
-            </Link>
-            <span className="hidden md:block" />
+        {/* Mobile Logo & Auth Section */}
+        <Link href="/" className="flex flex-1 items-center space-x-2 md:hidden">
+          <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center" suppressHydrationWarning>
+            <Code className="h-5 w-5 text-primary-foreground" />
           </div>
+          <span className="font-bold">AppCompatCheck</span>
+        </Link>
+        
+        <div className="flex items-center justify-end flex-1 md:flex-initial">
           <nav className="flex items-center space-x-2">
             {user ? (
               <>
