@@ -54,8 +54,8 @@ export function Footer() {
           {/* Brand */}
           <div className="col-span-2 md:col-span-2">
             <Link href="/" className="flex items-center space-x-2">
-              <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center" suppressHydrationWarning>
-                <Code className="h-5 w-5 text-primary-foreground" />
+              <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center">
+                <Code className="h-5 w-5 text-primary-foreground" suppressHydrationWarning />
               </div>
               <span className="font-bold text-lg">AppCompatCheck</span>
             </Link>
@@ -71,10 +71,9 @@ export function Footer() {
                   className="text-muted-foreground hover:text-foreground"
                   target="_blank"
                   rel="noopener noreferrer"
-                  suppressHydrationWarning
                 >
                   <span className="sr-only">{social.name}</span>
-                  <social.icon className="h-5 w-5" />
+                  <social.icon className="h-5 w-5" suppressHydrationWarning />
                 </Link>
               ))}
             </div>

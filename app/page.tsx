@@ -117,7 +117,7 @@ export default async function HomePage() {
                 <Button asChild size="lg" className="text-lg">
                   <Link href="/dashboard">
                     Get Started Free
-                    <ArrowRight className="ml-2 h-5 w-5" />
+                    <ArrowRight className="ml-2 h-5 w-5" suppressHydrationWarning />
                   </Link>
                 </Button>
                 <Button asChild variant="outline" size="lg" className="text-lg">
@@ -128,16 +128,16 @@ export default async function HomePage() {
               </div>
               
               <div className="mt-12 flex items-center justify-center gap-8 text-sm text-muted-foreground">
-                <div className="flex items-center gap-2" suppressHydrationWarning>
-                  <Lock className="h-4 w-4" />
+                <div className="flex items-center gap-2">
+                  <Lock className="h-4 w-4" suppressHydrationWarning />
                   <span>Enterprise Security</span>
                 </div>
-                <div className="flex items-center gap-2" suppressHydrationWarning>
-                  <Shield className="h-4 w-4" />
+                <div className="flex items-center gap-2">
+                  <Shield className="h-4 w-4" suppressHydrationWarning />
                   <span>SOC 2 Compliant</span>
                 </div>
-                <div className="flex items-center gap-2" suppressHydrationWarning>
-                  <Zap className="h-4 w-4" />
+                <div className="flex items-center gap-2">
+                  <Zap className="h-4 w-4" suppressHydrationWarning />
                   <span>99.9% Uptime</span>
                 </div>
               </div>
@@ -181,8 +181,8 @@ export default async function HomePage() {
               {features.map((feature, index) => (
                 <Card key={index} className="relative overflow-hidden border-0 bg-gradient-to-br from-background to-muted/30 shadow-md transition-all hover:shadow-lg">
                   <CardHeader>
-                    <div className={`mb-4 inline-flex h-12 w-12 items-center justify-center rounded-lg bg-muted ${feature.color}`} suppressHydrationWarning>
-                      <feature.icon className="h-6 w-6" />
+                    <div className={`mb-4 inline-flex h-12 w-12 items-center justify-center rounded-lg bg-muted ${feature.color}`}>
+                      <feature.icon className="h-6 w-6" suppressHydrationWarning />
                     </div>
                     <CardTitle className="text-xl">{feature.title}</CardTitle>
                   </CardHeader>
@@ -251,7 +251,7 @@ export default async function HomePage() {
                 <Button asChild size="lg" className="text-lg">
                   <Link href="/sign-up">
                     Start Free Trial
-                    <ArrowRight className="ml-2 h-5 w-5" />
+                    <ArrowRight className="ml-2 h-5 w-5" suppressHydrationWarning />
                   </Link>
                 </Button>
                 <Button asChild variant="outline" size="lg" className="text-lg">

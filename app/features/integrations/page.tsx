@@ -8,8 +8,8 @@ export default function IntegrationsPage() {
     <div className="container mx-auto px-4 py-16">
       <div className="max-w-4xl mx-auto">
         <div className="text-center mb-12">
-          <div suppressHydrationWarning>
-            <Globe className="h-16 w-16 mx-auto mb-4 text-blue-500" />
+          <div>
+            <Globe className="h-16 w-16 mx-auto mb-4 text-blue-500" suppressHydrationWarning />
           </div>
           <h1 className="text-4xl font-bold mb-4">Powerful Integrations</h1>
           <p className="text-xl text-muted-foreground">
@@ -20,8 +20,8 @@ export default function IntegrationsPage() {
         <div className="grid gap-6 md:grid-cols-2 mb-12">
           <Card>
             <CardHeader>
-              <div suppressHydrationWarning>
-                <Webhook className="h-8 w-8 text-blue-500 mb-2" />
+              <div>
+                <Webhook className="h-8 w-8 text-blue-500 mb-2" suppressHydrationWarning />
               </div>
               <CardTitle>Webhooks</CardTitle>
             </CardHeader>
@@ -34,8 +34,8 @@ export default function IntegrationsPage() {
 
           <Card>
             <CardHeader>
-              <div suppressHydrationWarning>
-                <Zap className="h-8 w-8 text-yellow-500 mb-2" />
+              <div>
+                <Zap className="h-8 w-8 text-yellow-500 mb-2" suppressHydrationWarning />
               </div>
               <CardTitle>CI/CD Pipeline</CardTitle>
             </CardHeader>
@@ -48,8 +48,8 @@ export default function IntegrationsPage() {
 
           <Card>
             <CardHeader>
-              <div suppressHydrationWarning>
-                <Database className="h-8 w-8 text-green-500 mb-2" />
+              <div>
+                <Database className="h-8 w-8 text-green-500 mb-2" suppressHydrationWarning />
               </div>
               <CardTitle>Version Control</CardTitle>
             </CardHeader>
@@ -62,8 +62,8 @@ export default function IntegrationsPage() {
 
           <Card>
             <CardHeader>
-              <div suppressHydrationWarning>
-                <Globe className="h-8 w-8 text-purple-500 mb-2" />
+              <div>
+                <Globe className="h-8 w-8 text-purple-500 mb-2" suppressHydrationWarning />
               </div>
               <CardTitle>REST API</CardTitle>
             </CardHeader>

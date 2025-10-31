@@ -148,8 +148,8 @@ export function Header({ user }: HeaderProps = {}) {
       <div className="container flex h-16 items-center">
         <div className="mr-4 hidden md:flex">
           <Link href="/" className="mr-6 flex items-center space-x-2">
-            <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center" suppressHydrationWarning>
-              <Code className="h-5 w-5 text-primary-foreground" />
+            <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center">
+              <Code className="h-5 w-5 text-primary-foreground" suppressHydrationWarning />
             </div>
             <span className="hidden font-bold sm:inline-block">
               AppCompatCheck
@@ -250,7 +250,7 @@ export function Header({ user }: HeaderProps = {}) {
               variant="ghost"
               className="mr-2 px-0 text-base hover:bg-transparent focus-visible:bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0 md:hidden"
             >
-              <Menu className="h-6 w-6" />
+              <Menu className="h-6 w-6" suppressHydrationWarning />
               <span className="sr-only">Toggle Menu</span>
             </Button>
           </SheetTrigger>
@@ -262,8 +262,8 @@ export function Header({ user }: HeaderProps = {}) {
                   className="flex items-center space-x-2"
                   onClick={() => setIsOpen(false)}
                 >
-                  <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center" suppressHydrationWarning>
-                    <Code className="h-5 w-5 text-primary-foreground" />
+                  <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center">
+                    <Code className="h-5 w-5 text-primary-foreground" suppressHydrationWarning />
                   </div>
                   <span className="font-bold">AppCompatCheck</span>
                 </Link>
@@ -320,8 +320,8 @@ export function Header({ user }: HeaderProps = {}) {
 
         {/* Mobile Logo & Auth Section */}
         <Link href="/" className="flex flex-1 items-center space-x-2 md:hidden">
-          <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center" suppressHydrationWarning>
-            <Code className="h-5 w-5 text-primary-foreground" />
+          <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center">
+            <Code className="h-5 w-5 text-primary-foreground" suppressHydrationWarning />
           </div>
           <span className="font-bold">AppCompatCheck</span>
         </Link>
@@ -336,7 +336,7 @@ export function Header({ user }: HeaderProps = {}) {
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button variant="ghost" size="sm" className="flex items-center gap-2">
-                      <UserIcon className="h-4 w-4" />
+                      <UserIcon className="h-4 w-4" suppressHydrationWarning />
                       {user.name || user.email}
                     </Button>
                   </DropdownMenuTrigger>
@@ -350,19 +350,19 @@ export function Header({ user }: HeaderProps = {}) {
                     <DropdownMenuSeparator />
                     <DropdownMenuItem asChild>
                       <Link href="/dashboard" className="cursor-pointer">
-                        <BarChart3 className="mr-2 h-4 w-4" />
+                        <BarChart3 className="mr-2 h-4 w-4" suppressHydrationWarning />
                         Dashboard
                       </Link>
                     </DropdownMenuItem>
                     <DropdownMenuItem asChild>
                       <Link href="/reports" className="cursor-pointer">
-                        <Shield className="mr-2 h-4 w-4" />
+                        <Shield className="mr-2 h-4 w-4" suppressHydrationWarning />
                         Reports
                       </Link>
                     </DropdownMenuItem>
                     <DropdownMenuItem asChild>
                       <Link href="/settings" className="cursor-pointer">
-                        <Settings className="mr-2 h-4 w-4" />
+                        <Settings className="mr-2 h-4 w-4" suppressHydrationWarning />
                         Settings
                       </Link>
                     </DropdownMenuItem>
@@ -371,7 +371,7 @@ export function Header({ user }: HeaderProps = {}) {
                       className="cursor-pointer text-destructive focus:text-destructive"
                       onClick={handleSignOut}
                     >
-                      <LogOut className="mr-2 h-4 w-4" />
+                      <LogOut className="mr-2 h-4 w-4" suppressHydrationWarning />
                       Log out
                     </DropdownMenuItem>
                   </DropdownMenuContent>
@@ -385,7 +385,7 @@ export function Header({ user }: HeaderProps = {}) {
                 <Button asChild size="sm">
                   <Link href="/sign-up">
                     Sign up
-                    <ArrowRight className="ml-2 h-4 w-4" />
+                    <ArrowRight className="ml-2 h-4 w-4" suppressHydrationWarning />
                   </Link>
                 </Button>
               </>

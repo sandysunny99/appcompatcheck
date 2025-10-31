@@ -8,8 +8,8 @@ export default function SecurityScanningPage() {
     <div className="container mx-auto px-4 py-16">
       <div className="max-w-4xl mx-auto">
         <div className="text-center mb-12">
-          <div suppressHydrationWarning>
-            <Shield className="h-16 w-16 mx-auto mb-4 text-red-500" />
+          <div>
+            <Shield className="h-16 w-16 mx-auto mb-4 text-red-500" suppressHydrationWarning />
           </div>
           <h1 className="text-4xl font-bold mb-4">Comprehensive Security Scanning</h1>
           <p className="text-xl text-muted-foreground">
@@ -20,8 +20,8 @@ export default function SecurityScanningPage() {
         <div className="grid gap-6 md:grid-cols-2 mb-12">
           <Card>
             <CardHeader>
-              <div suppressHydrationWarning>
-                <AlertTriangle className="h-8 w-8 text-orange-500 mb-2" />
+              <div>
+                <AlertTriangle className="h-8 w-8 text-orange-500 mb-2" suppressHydrationWarning />
               </div>
               <CardTitle>Vulnerability Detection</CardTitle>
             </CardHeader>
@@ -34,8 +34,8 @@ export default function SecurityScanningPage() {
 
           <Card>
             <CardHeader>
-              <div suppressHydrationWarning>
-                <Lock className="h-8 w-8 text-blue-500 mb-2" />
+              <div>
+                <Lock className="h-8 w-8 text-blue-500 mb-2" suppressHydrationWarning />
               </div>
               <CardTitle>Secure by Design</CardTitle>
             </CardHeader>
@@ -48,8 +48,8 @@ export default function SecurityScanningPage() {
 
           <Card>
             <CardHeader>
-              <div suppressHydrationWarning>
-                <Eye className="h-8 w-8 text-purple-500 mb-2" />
+              <div>
+                <Eye className="h-8 w-8 text-purple-500 mb-2" suppressHydrationWarning />
               </div>
               <CardTitle>Continuous Monitoring</CardTitle>
             </CardHeader>
@@ -62,8 +62,8 @@ export default function SecurityScanningPage() {
 
           <Card>
             <CardHeader>
-              <div suppressHydrationWarning>
-                <Shield className="h-8 w-8 text-green-500 mb-2" />
+              <div>
+                <Shield className="h-8 w-8 text-green-500 mb-2" suppressHydrationWarning />
               </div>
               <CardTitle>Compliance Ready</CardTitle>
             </CardHeader>
