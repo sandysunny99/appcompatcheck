@@ -14,6 +14,7 @@ import {
 } from '@/lib/compatibility/analysis-engine';
 import { headers } from 'next/headers';
 import crypto from 'crypto';
+import { getSystemInformation } from '@/lib/utils/system-info';
 
 // Initialize analysis engine
 const analysisEngine = new CompatibilityAnalysisEngine();
@@ -268,6 +269,9 @@ async function processScanInBackground(
   context: AnalysisContext & { files?: any[] }
 ) {
   try {
+    // Capture system information
+    const systemInfo = await getSystemInformation();
+    
     // Update scan status to running
     await db
       .update(scans)
@@ -375,7 +379,7 @@ async function processScanInBackground(
       return acc;
     }, {});
 
-    // Update scan status to completed with results and metrics
+    // Update scan status to completed with results, metrics, and system information
     await db
       .update(scans)
       .set({
@@ -391,6 +395,7 @@ async function processScanInBackground(
             failed: failedChecks,
           },
           bySeverity: resultsBySeverity,
+          systemInformation: systemInfo,
         },
         metrics: {
           riskScore,

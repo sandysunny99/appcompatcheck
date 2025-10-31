@@ -236,7 +236,45 @@ export class ReportGenerator {
       margin: { left: 20, right: 20 },
     });
 
-    return (doc as any).lastAutoTable.finalY + 20;
+    yPosition = (doc as any).lastAutoTable.finalY + 20;
+
+    // Add system information section
+    if (this.data.systemInfo) {
+      doc.setFontSize(16);
+      doc.setFont(undefined, 'bold');
+      doc.text('System Information', 20, yPosition);
+      yPosition += 15;
+
+      doc.setFontSize(10);
+      doc.setFont(undefined, 'normal');
+
+      const systemData = [
+        ['Host/Device Name', this.data.systemInfo.deviceName || 'N/A'],
+        ['IP Address', this.data.systemInfo.ipAddress || 'N/A'],
+        ['Last User', this.data.user.email || 'N/A'],
+        ['Last Login', this.data.systemInfo.lastLogin 
+          ? new Date(this.data.systemInfo.lastLogin).toLocaleString() 
+          : 'N/A'],
+        ['User Agent', this.data.systemInfo.userAgent || 'N/A'],
+      ];
+
+      doc.autoTable({
+        startY: yPosition,
+        head: [['Property', 'Value']],
+        body: systemData,
+        theme: 'grid',
+        styles: { fontSize: 10 },
+        headStyles: { fillColor: [66, 139, 202] },
+        margin: { left: 20, right: 20 },
+        columnStyles: {
+          1: { cellWidth: 'auto' }, // Allow user agent to wrap
+        },
+      });
+
+      yPosition = (doc as any).lastAutoTable.finalY + 20;
+    }
+
+    return yPosition;
   }
 
   private addPDFResultsTable(doc: jsPDF, yPosition: number): number {

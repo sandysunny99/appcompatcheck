@@ -87,8 +87,13 @@ interface ReportData {
   systemInfo?: {
     lastLogin?: string;
     deviceName?: string;
+    hostname?: string;
     ipAddress?: string;
     userAgent?: string;
+    platform?: string;
+    architecture?: string;
+    osVersion?: string;
+    username?: string;
   };
 }
 
@@ -148,15 +153,8 @@ export function ScanResultsView({ scanSessionId, scanId, userId }: ScanResultsVi
 
       const data = await response.json();
       
-      // Add system info
-      const systemInfo = {
-        lastLogin: new Date().toISOString(),
-        deviceName: navigator.platform || 'Unknown Device',
-        ipAddress: await fetchClientIP(),
-        userAgent: navigator.userAgent,
-      };
-      
-      setReportData({ ...data, systemInfo });
+      // System info is already included in the API response
+      setReportData(data);
     } catch (err) {
       console.error('Error fetching report:', err);
       setError('An unexpected error occurred');
@@ -165,15 +163,7 @@ export function ScanResultsView({ scanSessionId, scanId, userId }: ScanResultsVi
     }
   };
 
-  const fetchClientIP = async (): Promise<string> => {
-    try {
-      const response = await fetch('https://api.ipify.org?format=json');
-      const data = await response.json();
-      return data.ip || 'Unknown';
-    } catch {
-      return 'Unknown';
-    }
-  };
+
 
   const handleDownload = () => {
     if (!reportData) return;
@@ -202,15 +192,15 @@ export function ScanResultsView({ scanSessionId, scanId, userId }: ScanResultsVi
   const getStatusIcon = (status: string) => {
     switch (status) {
       case 'pass':
-        return <CheckCircle className="w-4 h-4 text-green-600" />;
+        return <CheckCircle className="w-4 h-4 text-green-600" suppressHydrationWarning />;
       case 'fail':
-        return <AlertCircle className="w-4 h-4 text-red-600" />;
+        return <AlertCircle className="w-4 h-4 text-red-600" suppressHydrationWarning />;
       case 'warning':
-        return <AlertTriangle className="w-4 h-4 text-yellow-600" />;
+        return <AlertTriangle className="w-4 h-4 text-yellow-600" suppressHydrationWarning />;
       case 'info':
-        return <Info className="w-4 h-4 text-blue-600" />;
+        return <Info className="w-4 h-4 text-blue-600" suppressHydrationWarning />;
       default:
-        return <Info className="w-4 h-4 text-gray-600" />;
+        return <Info className="w-4 h-4 text-gray-600" suppressHydrationWarning />;
     }
   };
 
@@ -256,7 +246,7 @@ export function ScanResultsView({ scanSessionId, scanId, userId }: ScanResultsVi
     return (
       <div className="flex items-center justify-center py-12">
         <div className="text-center">
-          <Activity className="w-12 h-12 animate-spin text-primary mx-auto mb-4" />
+          <Activity className="w-12 h-12 animate-spin text-primary mx-auto mb-4" suppressHydrationWarning />
           <p className="text-gray-600">Loading report data...</p>
         </div>
       </div>
@@ -267,14 +257,14 @@ export function ScanResultsView({ scanSessionId, scanId, userId }: ScanResultsVi
     return (
       <div className="py-12">
         <Alert variant="destructive">
-          <AlertCircle className="h-4 w-4" />
+          <AlertCircle className="h-4 w-4" suppressHydrationWarning />
           <AlertDescription>
             {error || 'Failed to load report'}
           </AlertDescription>
         </Alert>
         <div className="mt-4">
           <Button variant="outline" onClick={() => router.push('/reports')}>
-            <ArrowLeft className="w-4 h-4 mr-2" />
+            <ArrowLeft className="w-4 h-4 mr-2" suppressHydrationWarning />
             Back to Reports
           </Button>
         </div>
@@ -290,7 +280,7 @@ export function ScanResultsView({ scanSessionId, scanId, userId }: ScanResultsVi
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
           <Button variant="ghost" size="sm" onClick={() => router.push('/reports')}>
-            <ArrowLeft className="w-4 h-4 mr-2" />
+            <ArrowLeft className="w-4 h-4 mr-2" suppressHydrationWarning />
             Back
           </Button>
           <div>
@@ -301,7 +291,7 @@ export function ScanResultsView({ scanSessionId, scanId, userId }: ScanResultsVi
           </div>
         </div>
         <Button onClick={handleDownload} disabled={downloading}>
-          <Download className="w-4 h-4 mr-2" />
+          <Download className="w-4 h-4 mr-2" suppressHydrationWarning />
           {downloading ? 'Downloading...' : 'Download Report'}
         </Button>
       </div>
@@ -315,7 +305,7 @@ export function ScanResultsView({ scanSessionId, scanId, userId }: ScanResultsVi
                 <p className="text-sm text-gray-600">Total Results</p>
                 <p className="text-2xl font-bold">{summary.totalResults}</p>
               </div>
-              <FileText className="w-8 h-8 text-blue-500" />
+              <FileText className="w-8 h-8 text-blue-500" suppressHydrationWarning />
             </div>
           </CardContent>
         </Card>
@@ -330,7 +320,7 @@ export function ScanResultsView({ scanSessionId, scanId, userId }: ScanResultsVi
                   {scanSession.riskScore && '/10'}
                 </p>
               </div>
-              <TrendingUp className="w-8 h-8 text-orange-500" />
+              <TrendingUp className="w-8 h-8 text-orange-500" suppressHydrationWarning />
             </div>
           </CardContent>
         </Card>
@@ -344,7 +334,7 @@ export function ScanResultsView({ scanSessionId, scanId, userId }: ScanResultsVi
                   {summary.riskDistribution.critical}
                 </p>
               </div>
-              <AlertCircle className="w-8 h-8 text-red-500" />
+              <AlertCircle className="w-8 h-8 text-red-500" suppressHydrationWarning />
             </div>
           </CardContent>
         </Card>
@@ -358,7 +348,7 @@ export function ScanResultsView({ scanSessionId, scanId, userId }: ScanResultsVi
                   {scanSession.status}
                 </Badge>
               </div>
-              <Shield className="w-8 h-8 text-green-500" />
+              <Shield className="w-8 h-8 text-green-500" suppressHydrationWarning />
             </div>
           </CardContent>
         </Card>
@@ -368,14 +358,14 @@ export function ScanResultsView({ scanSessionId, scanId, userId }: ScanResultsVi
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Info className="w-5 h-5" />
+            <Info className="w-5 h-5" suppressHydrationWarning />
             Scan Information
           </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             <div className="flex items-start gap-3">
-              <Calendar className="w-5 h-5 text-gray-400 mt-0.5" />
+              <Calendar className="w-5 h-5 text-gray-400 mt-0.5" suppressHydrationWarning />
               <div>
                 <p className="text-sm text-gray-600">Created</p>
                 <p className="font-medium">{format(new Date(scanSession.createdAt), 'PPpp')}</p>
@@ -387,7 +377,7 @@ export function ScanResultsView({ scanSessionId, scanId, userId }: ScanResultsVi
 
             {scanSession.completedAt && (
               <div className="flex items-start gap-3">
-                <Clock className="w-5 h-5 text-gray-400 mt-0.5" />
+                <Clock className="w-5 h-5 text-gray-400 mt-0.5" suppressHydrationWarning />
                 <div>
                   <p className="text-sm text-gray-600">Completed</p>
                   <p className="font-medium">{format(new Date(scanSession.completedAt), 'PPpp')}</p>
@@ -396,7 +386,7 @@ export function ScanResultsView({ scanSessionId, scanId, userId }: ScanResultsVi
             )}
 
             <div className="flex items-start gap-3">
-              <User className="w-5 h-5 text-gray-400 mt-0.5" />
+              <User className="w-5 h-5 text-gray-400 mt-0.5" suppressHydrationWarning />
               <div>
                 <p className="text-sm text-gray-600">Scanned By</p>
                 <p className="font-medium">{user.firstName} {user.lastName}</p>
@@ -406,7 +396,7 @@ export function ScanResultsView({ scanSessionId, scanId, userId }: ScanResultsVi
 
             {organization && (
               <div className="flex items-start gap-3">
-                <Building className="w-5 h-5 text-gray-400 mt-0.5" />
+                <Building className="w-5 h-5 text-gray-400 mt-0.5" suppressHydrationWarning />
                 <div>
                   <p className="text-sm text-gray-600">Organization</p>
                   <p className="font-medium">{organization.name}</p>
@@ -418,7 +408,7 @@ export function ScanResultsView({ scanSessionId, scanId, userId }: ScanResultsVi
             )}
 
             <div className="flex items-start gap-3">
-              <FileText className="w-5 h-5 text-gray-400 mt-0.5" />
+              <FileText className="w-5 h-5 text-gray-400 mt-0.5" suppressHydrationWarning />
               <div>
                 <p className="text-sm text-gray-600">Session ID</p>
                 <p className="font-mono text-xs">{scanSession.sessionId}</p>
@@ -426,7 +416,7 @@ export function ScanResultsView({ scanSessionId, scanId, userId }: ScanResultsVi
             </div>
 
             <div className="flex items-start gap-3">
-              <Activity className="w-5 h-5 text-gray-400 mt-0.5" />
+              <Activity className="w-5 h-5 text-gray-400 mt-0.5" suppressHydrationWarning />
               <div>
                 <p className="text-sm text-gray-600">Checks Progress</p>
                 <p className="font-medium">
@@ -443,40 +433,28 @@ export function ScanResultsView({ scanSessionId, scanId, userId }: ScanResultsVi
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Monitor className="w-5 h-5" />
+              <Monitor className="w-5 h-5" suppressHydrationWarning />
               System Information
             </CardTitle>
             <CardDescription>
-              Information about the system that generated this report
+              Information captured during the scan
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {systemInfo.lastLogin && (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {(systemInfo.hostname || systemInfo.deviceName) && (
                 <div className="flex items-start gap-3">
-                  <Clock className="w-5 h-5 text-gray-400 mt-0.5" />
+                  <Monitor className="w-5 h-5 text-gray-400 mt-0.5" suppressHydrationWarning />
                   <div>
-                    <p className="text-sm text-gray-600">Last Login</p>
-                    <p className="font-medium">
-                      {format(new Date(systemInfo.lastLogin), 'PPpp')}
-                    </p>
-                  </div>
-                </div>
-              )}
-
-              {systemInfo.deviceName && (
-                <div className="flex items-start gap-3">
-                  <Monitor className="w-5 h-5 text-gray-400 mt-0.5" />
-                  <div>
-                    <p className="text-sm text-gray-600">Device / Platform</p>
-                    <p className="font-medium">{systemInfo.deviceName}</p>
+                    <p className="text-sm text-gray-600">Host / Device Name</p>
+                    <p className="font-medium">{systemInfo.hostname || systemInfo.deviceName}</p>
                   </div>
                 </div>
               )}
 
               {systemInfo.ipAddress && (
                 <div className="flex items-start gap-3">
-                  <Globe className="w-5 h-5 text-gray-400 mt-0.5" />
+                  <Globe className="w-5 h-5 text-gray-400 mt-0.5" suppressHydrationWarning />
                   <div>
                     <p className="text-sm text-gray-600">IP Address</p>
                     <p className="font-mono text-sm">{systemInfo.ipAddress}</p>
@@ -484,9 +462,54 @@ export function ScanResultsView({ scanSessionId, scanId, userId }: ScanResultsVi
                 </div>
               )}
 
+              {systemInfo.username && (
+                <div className="flex items-start gap-3">
+                  <User className="w-5 h-5 text-gray-400 mt-0.5" suppressHydrationWarning />
+                  <div>
+                    <p className="text-sm text-gray-600">Last User</p>
+                    <p className="font-medium">{systemInfo.username}</p>
+                  </div>
+                </div>
+              )}
+
+              {systemInfo.lastLogin && (
+                <div className="flex items-start gap-3">
+                  <Clock className="w-5 h-5 text-gray-400 mt-0.5" suppressHydrationWarning />
+                  <div>
+                    <p className="text-sm text-gray-600">Last Login / Scan Time</p>
+                    <p className="font-medium">
+                      {format(new Date(systemInfo.lastLogin), 'PPpp')}
+                    </p>
+                    <p className="text-xs text-gray-500">
+                      {formatDistanceToNow(new Date(systemInfo.lastLogin), { addSuffix: true })}
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {systemInfo.platform && (
+                <div className="flex items-start gap-3">
+                  <Monitor className="w-5 h-5 text-gray-400 mt-0.5" suppressHydrationWarning />
+                  <div>
+                    <p className="text-sm text-gray-600">Platform</p>
+                    <p className="font-medium">{systemInfo.platform} ({systemInfo.architecture || 'unknown'})</p>
+                  </div>
+                </div>
+              )}
+
+              {systemInfo.osVersion && (
+                <div className="flex items-start gap-3">
+                  <Shield className="w-5 h-5 text-gray-400 mt-0.5" suppressHydrationWarning />
+                  <div>
+                    <p className="text-sm text-gray-600">OS Version</p>
+                    <p className="font-medium">{systemInfo.osVersion}</p>
+                  </div>
+                </div>
+              )}
+
               {systemInfo.userAgent && (
-                <div className="flex items-start gap-3 md:col-span-2">
-                  <Info className="w-5 h-5 text-gray-400 mt-0.5" />
+                <div className="flex items-start gap-3 md:col-span-2 lg:col-span-3">
+                  <Info className="w-5 h-5 text-gray-400 mt-0.5" suppressHydrationWarning />
                   <div className="flex-1 min-w-0">
                     <p className="text-sm text-gray-600">User Agent</p>
                     <p className="font-mono text-xs break-all">{systemInfo.userAgent}</p>
@@ -502,7 +525,7 @@ export function ScanResultsView({ scanSessionId, scanId, userId }: ScanResultsVi
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Shield className="w-5 h-5" />
+            <Shield className="w-5 h-5" suppressHydrationWarning />
             Risk Distribution
           </CardTitle>
         </CardHeader>
@@ -540,7 +563,7 @@ export function ScanResultsView({ scanSessionId, scanId, userId }: ScanResultsVi
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <FileText className="w-5 h-5" />
+            <FileText className="w-5 h-5" suppressHydrationWarning />
             Scan Results ({results.length})
           </CardTitle>
           <CardDescription>

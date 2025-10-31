@@ -172,33 +172,18 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       },
     };
 
-    // Fetch system information from activity logs and user data
-    const [userDetails] = await db
-      .select({
-        lastLoginAt: users.lastLoginAt,
-      })
-      .from(users)
-      .where(eq(users.id, session.user.id))
-      .limit(1);
-
-    // Get the most recent activity log for this user to get IP and user agent
-    const [recentActivity] = await db
-      .select({
-        ipAddress: activityLogs.ipAddress,
-        userAgent: activityLogs.userAgent,
-      })
-      .from(activityLogs)
-      .where(eq(activityLogs.userId, session.user.id))
-      .orderBy(desc(activityLogs.timestamp))
-      .limit(1);
-
-    // Add system information
-    if (userDetails || recentActivity) {
+    // Add system information from scan results if available
+    if (resultsData.systemInformation) {
       reportData.systemInfo = {
-        lastLogin: userDetails?.lastLoginAt?.toISOString(),
-        ipAddress: recentActivity?.ipAddress || undefined,
-        userAgent: recentActivity?.userAgent || undefined,
-        deviceName: undefined, // Will be filled by client-side
+        lastLogin: resultsData.systemInformation.capturedAt,
+        ipAddress: resultsData.systemInformation.ipAddress || undefined,
+        userAgent: resultsData.systemInformation.userAgent || undefined,
+        deviceName: resultsData.systemInformation.hostname || resultsData.systemInformation.deviceName || undefined,
+        hostname: resultsData.systemInformation.hostname || undefined,
+        platform: resultsData.systemInformation.platform || undefined,
+        architecture: resultsData.systemInformation.architecture || undefined,
+        osVersion: resultsData.systemInformation.osVersion || undefined,
+        username: resultsData.systemInformation.username || undefined,
       };
     }
 
