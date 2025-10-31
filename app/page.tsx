@@ -101,11 +101,11 @@ export default async function HomePage() {
               </div>
               
               <h1 className="mb-6 text-4xl font-bold tracking-tight sm:text-5xl lg:text-6xl">
-                Enterprise{' '}
-                <span className="gradient-text">
+                <span className="block">Enterprise</span>
+                <span className="gradient-text block">
                   Compatibility Analysis
-                </span>{' '}
-                Platform
+                </span>
+                <span className="block">Platform</span>
               </h1>
               
               <p className="mx-auto mb-8 max-w-2xl text-xl text-muted-foreground sm:text-2xl">
