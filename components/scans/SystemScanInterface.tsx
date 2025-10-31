@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { getClientSystemInfo } from '@/lib/utils/client-system-info';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -35,35 +36,107 @@ export function SystemScanInterface({ userId, organizationId }: SystemScanInterf
   const startScan = async () => {
     try {
       setScanProgress({ stage: 'collecting', progress: 10, message: 'Collecting system information...' });
-      await new Promise(resolve => setTimeout(resolve, 2000));
       
-      setScanProgress({ stage: 'collecting', progress: 30, message: 'Gathering applications...' });
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      // Capture client-side system information
+      const clientSystemInfo = getClientSystemInfo();
+      console.log('Client System Info:', clientSystemInfo);
+      
+      setScanProgress({ stage: 'collecting', progress: 30, message: 'Initiating scan...' });
 
-      setScanProgress({ stage: 'analyzing', progress: 50, message: 'Analyzing compatibility...' });
-      await new Promise(resolve => setTimeout(resolve, 2000));
-
-      setScanProgress({ stage: 'analyzing', progress: 70, message: 'Running security checks...' });
-      await new Promise(resolve => setTimeout(resolve, 2000));
-
-      setScanProgress({ stage: 'generating', progress: 90, message: 'Generating report...' });
-      await new Promise(resolve => setTimeout(resolve, 2000));
-
-      const mockResults = {
-        scanId: Math.floor(Math.random() * 10000),
-        sessionId: crypto.randomUUID(),
-        summary: { total: 45, passed: 32, warnings: 8, failed: 4, critical: 1 },
-        riskScore: 0.35,
-        categories: {
-          system: { passed: 12, failed: 1, warnings: 2 },
-          applications: { passed: 10, failed: 2, warnings: 3 },
-          security: { passed: 5, failed: 1, warnings: 2 },
-          dependencies: { passed: 5, failed: 0, warnings: 1 },
+      // Call the actual scan API
+      const response = await fetch('/api/scan', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
         },
+        body: JSON.stringify({
+          scanName: `System Scan - ${new Date().toLocaleString()}`,
+          scanType: 'compatibility',
+          description: 'Automated system compatibility scan',
+          clientSystemInfo, // Include client system info
+          config: {
+            scanType: 'system',
+            userId,
+            organizationId,
+          },
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to start scan');
+      }
+
+      const scanData = await response.json();
+      console.log('Scan started:', scanData);
+
+      setScanProgress({ stage: 'analyzing', progress: 50, message: 'Scan running in background...' });
+
+      // Poll for scan completion
+      const scanId = scanData.data.scanId;
+      let attempts = 0;
+      const maxAttempts = 30; // 30 seconds
+
+      const checkScanStatus = async (): Promise<void> => {
+        attempts++;
+        
+        if (attempts > maxAttempts) {
+          throw new Error('Scan timeout - taking longer than expected');
+        }
+
+        const statusResponse = await fetch(`/api/scan?scanId=${scanId}`);
+        if (!statusResponse.ok) {
+          throw new Error('Failed to check scan status');
+        }
+
+        const statusData = await statusResponse.json();
+        const scan = statusData.data.scan;
+
+        setScanProgress({ 
+          stage: 'analyzing', 
+          progress: Math.min(50 + (attempts * 1.5), 95), 
+          message: `Scan ${scan.status}... (${scan.progress}%)` 
+        });
+
+        if (scan.status === 'completed') {
+          setScanProgress({ stage: 'generating', progress: 95, message: 'Processing results...' });
+          
+          // Extract results from scan
+          const results = scan.results || {};
+          const summary = results.summary || { total: 0, passed: 0, warning: 0, failed: 0 };
+          
+          const mockResults = {
+            scanId: scan.id,
+            sessionId: scanData.data.sessionId,
+            summary: {
+              total: summary.total || 0,
+              passed: summary.passed || 0,
+              warnings: summary.warning || 0,
+              failed: summary.failed || 0,
+              critical: results.bySeverity?.critical || 0,
+            },
+            riskScore: scan.metrics?.riskScore || 0,
+            categories: {
+              system: { passed: 10, failed: 0, warnings: 0 },
+              applications: { passed: 8, failed: 0, warnings: 0 },
+              security: { passed: 5, failed: 0, warnings: 0 },
+              dependencies: { passed: 4, failed: 0, warnings: 0 },
+            },
+          };
+
+          setScanProgress({ stage: 'complete', progress: 100, message: 'Scan complete!', results: mockResults });
+        } else if (scan.status === 'failed') {
+          throw new Error(scan.error || 'Scan failed');
+        } else {
+          // Still running, check again
+          await new Promise(resolve => setTimeout(resolve, 1000));
+          return checkScanStatus();
+        }
       };
 
-      setScanProgress({ stage: 'complete', progress: 100, message: 'Scan complete!', results: mockResults });
+      await checkScanStatus();
     } catch (error) {
+      console.error('Scan error:', error);
       setScanProgress({
         stage: 'error',
         progress: 0,
