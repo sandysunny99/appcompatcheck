@@ -55,7 +55,8 @@ export async function POST(request: NextRequest) {
       description,
       files = [],
       config = {},
-      dataType = 'security_log' 
+      dataType = 'security_log',
+      clientSystemInfo = {} // Client-side system information
     } = body;
 
     if (!scanName) {
@@ -118,6 +119,7 @@ export async function POST(request: NextRequest) {
       dataType,
       rules: [], // Will be loaded in background
       files,
+      clientSystemInfo, // Pass client info to background processor
     });
 
     return NextResponse.json({
@@ -266,11 +268,11 @@ export async function GET(request: NextRequest) {
 // Background scan processing function
 async function processScanInBackground(
   scanId: string,
-  context: AnalysisContext & { files?: any[] }
+  context: AnalysisContext & { files?: any[]; clientSystemInfo?: any }
 ) {
   try {
-    // Capture system information
-    const systemInfo = await getSystemInformation();
+    // Capture system information (server + client)
+    const systemInfo = await getSystemInformation(context.clientSystemInfo);
     
     // Update scan status to running
     await db

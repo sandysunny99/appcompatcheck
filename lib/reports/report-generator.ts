@@ -248,26 +248,74 @@ export class ReportGenerator {
       doc.setFontSize(10);
       doc.setFont(undefined, 'normal');
 
-      const systemData = [
-        ['Host/Device Name', this.data.systemInfo.deviceName || 'N/A'],
-        ['IP Address', this.data.systemInfo.ipAddress || 'N/A'],
-        ['Last User', this.data.user.email || 'N/A'],
-        ['Last Login', this.data.systemInfo.lastLogin 
-          ? new Date(this.data.systemInfo.lastLogin).toLocaleString() 
-          : 'N/A'],
-        ['User Agent', this.data.systemInfo.userAgent || 'N/A'],
-      ];
+      const systemData: string[][] = [];
+      
+      // Client Device Information (from browser)
+      systemData.push(['=== CLIENT DEVICE (Browser) ===', '']);
+      
+      if ((this.data.systemInfo as any).clientPlatform) {
+        systemData.push(['Platform', (this.data.systemInfo as any).clientPlatform]);
+      } else if (this.data.systemInfo.deviceName && this.data.systemInfo.deviceName !== (this.data.systemInfo as any).serverHostname) {
+        systemData.push(['Platform', this.data.systemInfo.deviceName]);
+      }
+      
+      if ((this.data.systemInfo as any).clientIpAddress || this.data.systemInfo.ipAddress) {
+        systemData.push(['IP Address', (this.data.systemInfo as any).clientIpAddress || this.data.systemInfo.ipAddress || 'N/A']);
+      }
+      
+      if ((this.data.systemInfo as any).clientTimezone) {
+        systemData.push(['Timezone', (this.data.systemInfo as any).clientTimezone]);
+      }
+      
+      if ((this.data.systemInfo as any).clientLanguage) {
+        systemData.push(['Language', (this.data.systemInfo as any).clientLanguage]);
+      }
+      
+      if ((this.data.systemInfo as any).clientScreenResolution) {
+        systemData.push(['Screen Resolution', (this.data.systemInfo as any).clientScreenResolution]);
+      }
+      
+      if ((this.data.systemInfo as any).clientUserAgent || this.data.systemInfo.userAgent) {
+        const ua = (this.data.systemInfo as any).clientUserAgent || this.data.systemInfo.userAgent || 'N/A';
+        systemData.push(['User Agent', ua.length > 80 ? ua.substring(0, 77) + '...' : ua]);
+      }
+      
+      // Scan Information
+      systemData.push(['', '']);
+      systemData.push(['=== SCAN METADATA ===', '']);
+      systemData.push(['Scanned By', this.data.user.email]);
+      systemData.push(['Scan Timestamp', this.data.systemInfo.lastLogin 
+        ? new Date(this.data.systemInfo.lastLogin).toLocaleString() 
+        : new Date().toLocaleString()]);
+      
+      // Server Information (optional, for transparency)
+      if ((this.data.systemInfo as any).serverHostname) {
+        systemData.push(['', '']);
+        systemData.push(['=== SCAN SERVER ===', '']);
+        systemData.push(['Server Hostname', (this.data.systemInfo as any).serverHostname]);
+        if ((this.data.systemInfo as any).serverPlatform) {
+          systemData.push(['Server Platform', `${(this.data.systemInfo as any).serverPlatform} ${(this.data.systemInfo as any).serverArchitecture || ''}`]);
+        }
+      }
 
       doc.autoTable({
         startY: yPosition,
         head: [['Property', 'Value']],
         body: systemData,
         theme: 'grid',
-        styles: { fontSize: 10 },
+        styles: { fontSize: 9 },
         headStyles: { fillColor: [66, 139, 202] },
         margin: { left: 20, right: 20 },
         columnStyles: {
-          1: { cellWidth: 'auto' }, // Allow user agent to wrap
+          0: { cellWidth: 60 },
+          1: { cellWidth: 'auto' },
+        },
+        didParseCell: (data) => {
+          // Style section headers
+          if (data.section === 'body' && data.cell.text[0].startsWith('===')) {
+            data.cell.styles.fontStyle = 'bold';
+            data.cell.styles.fillColor = [240, 240, 240];
+          }
         },
       });
 

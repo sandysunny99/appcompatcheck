@@ -441,78 +441,124 @@ export function ScanResultsView({ scanSessionId, scanId, userId }: ScanResultsVi
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {(systemInfo.hostname || systemInfo.deviceName) && (
-                <div className="flex items-start gap-3">
-                  <Monitor className="w-5 h-5 text-gray-400 mt-0.5" suppressHydrationWarning />
-                  <div>
-                    <p className="text-sm text-gray-600">Host / Device Name</p>
-                    <p className="font-medium">{systemInfo.hostname || systemInfo.deviceName}</p>
-                  </div>
-                </div>
-              )}
+            <div className="space-y-6">
+              {/* Client Device Section */}
+              <div>
+                <h4 className="text-sm font-semibold text-gray-700 mb-3">Client Device (Browser)</h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {((systemInfo as any).clientPlatform || systemInfo.deviceName) && (
+                    <div className="flex items-start gap-3">
+                      <Monitor className="w-5 h-5 text-gray-400 mt-0.5" suppressHydrationWarning />
+                      <div>
+                        <p className="text-sm text-gray-600">Platform</p>
+                        <p className="font-medium">{(systemInfo as any).clientPlatform || systemInfo.deviceName}</p>
+                      </div>
+                    </div>
+                  )}
 
-              {systemInfo.ipAddress && (
-                <div className="flex items-start gap-3">
-                  <Globe className="w-5 h-5 text-gray-400 mt-0.5" suppressHydrationWarning />
-                  <div>
-                    <p className="text-sm text-gray-600">IP Address</p>
-                    <p className="font-mono text-sm">{systemInfo.ipAddress}</p>
-                  </div>
-                </div>
-              )}
+                  {((systemInfo as any).clientIpAddress || systemInfo.ipAddress) && (
+                    <div className="flex items-start gap-3">
+                      <Globe className="w-5 h-5 text-gray-400 mt-0.5" suppressHydrationWarning />
+                      <div>
+                        <p className="text-sm text-gray-600">IP Address</p>
+                        <p className="font-mono text-sm">{(systemInfo as any).clientIpAddress || systemInfo.ipAddress}</p>
+                      </div>
+                    </div>
+                  )}
 
-              {systemInfo.username && (
-                <div className="flex items-start gap-3">
-                  <User className="w-5 h-5 text-gray-400 mt-0.5" suppressHydrationWarning />
-                  <div>
-                    <p className="text-sm text-gray-600">Last User</p>
-                    <p className="font-medium">{systemInfo.username}</p>
-                  </div>
-                </div>
-              )}
+                  {(systemInfo as any).clientTimezone && (
+                    <div className="flex items-start gap-3">
+                      <Clock className="w-5 h-5 text-gray-400 mt-0.5" suppressHydrationWarning />
+                      <div>
+                        <p className="text-sm text-gray-600">Timezone</p>
+                        <p className="font-medium">{(systemInfo as any).clientTimezone}</p>
+                      </div>
+                    </div>
+                  )}
 
-              {systemInfo.lastLogin && (
-                <div className="flex items-start gap-3">
-                  <Clock className="w-5 h-5 text-gray-400 mt-0.5" suppressHydrationWarning />
-                  <div>
-                    <p className="text-sm text-gray-600">Last Login / Scan Time</p>
-                    <p className="font-medium">
-                      {format(new Date(systemInfo.lastLogin), 'PPpp')}
-                    </p>
-                    <p className="text-xs text-gray-500">
-                      {formatDistanceToNow(new Date(systemInfo.lastLogin), { addSuffix: true })}
-                    </p>
-                  </div>
-                </div>
-              )}
+                  {(systemInfo as any).clientLanguage && (
+                    <div className="flex items-start gap-3">
+                      <Globe className="w-5 h-5 text-gray-400 mt-0.5" suppressHydrationWarning />
+                      <div>
+                        <p className="text-sm text-gray-600">Language</p>
+                        <p className="font-medium">{(systemInfo as any).clientLanguage}</p>
+                      </div>
+                    </div>
+                  )}
 
-              {systemInfo.platform && (
-                <div className="flex items-start gap-3">
-                  <Monitor className="w-5 h-5 text-gray-400 mt-0.5" suppressHydrationWarning />
-                  <div>
-                    <p className="text-sm text-gray-600">Platform</p>
-                    <p className="font-medium">{systemInfo.platform} ({systemInfo.architecture || 'unknown'})</p>
-                  </div>
-                </div>
-              )}
+                  {(systemInfo as any).clientScreenResolution && (
+                    <div className="flex items-start gap-3">
+                      <Monitor className="w-5 h-5 text-gray-400 mt-0.5" suppressHydrationWarning />
+                      <div>
+                        <p className="text-sm text-gray-600">Screen Resolution</p>
+                        <p className="font-medium">{(systemInfo as any).clientScreenResolution}</p>
+                      </div>
+                    </div>
+                  )}
 
-              {systemInfo.osVersion && (
-                <div className="flex items-start gap-3">
-                  <Shield className="w-5 h-5 text-gray-400 mt-0.5" suppressHydrationWarning />
-                  <div>
-                    <p className="text-sm text-gray-600">OS Version</p>
-                    <p className="font-medium">{systemInfo.osVersion}</p>
-                  </div>
+                  {((systemInfo as any).clientUserAgent || systemInfo.userAgent) && (
+                    <div className="flex items-start gap-3 md:col-span-2 lg:col-span-3">
+                      <Info className="w-5 h-5 text-gray-400 mt-0.5" suppressHydrationWarning />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm text-gray-600">User Agent</p>
+                        <p className="font-mono text-xs break-all">{(systemInfo as any).clientUserAgent || systemInfo.userAgent}</p>
+                      </div>
+                    </div>
+                  )}
                 </div>
-              )}
+              </div>
 
-              {systemInfo.userAgent && (
-                <div className="flex items-start gap-3 md:col-span-2 lg:col-span-3">
-                  <Info className="w-5 h-5 text-gray-400 mt-0.5" suppressHydrationWarning />
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm text-gray-600">User Agent</p>
-                    <p className="font-mono text-xs break-all">{systemInfo.userAgent}</p>
+              {/* Scan Metadata Section */}
+              <div className="border-t pt-4">
+                <h4 className="text-sm font-semibold text-gray-700 mb-3">Scan Metadata</h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="flex items-start gap-3">
+                    <User className="w-5 h-5 text-gray-400 mt-0.5" suppressHydrationWarning />
+                    <div>
+                      <p className="text-sm text-gray-600">Scanned By</p>
+                      <p className="font-medium">{user.email}</p>
+                    </div>
+                  </div>
+
+                  {systemInfo.lastLogin && (
+                    <div className="flex items-start gap-3">
+                      <Clock className="w-5 h-5 text-gray-400 mt-0.5" suppressHydrationWarning />
+                      <div>
+                        <p className="text-sm text-gray-600">Scan Timestamp</p>
+                        <p className="font-medium">
+                          {format(new Date(systemInfo.lastLogin), 'PPpp')}
+                        </p>
+                        <p className="text-xs text-gray-500">
+                          {formatDistanceToNow(new Date(systemInfo.lastLogin), { addSuffix: true })}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Server Information (Optional, for transparency) */}
+              {(systemInfo as any).serverHostname && (
+                <div className="border-t pt-4">
+                  <h4 className="text-sm font-semibold text-gray-700 mb-3">Scan Server</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="flex items-start gap-3">
+                      <Shield className="w-5 h-5 text-gray-400 mt-0.5" suppressHydrationWarning />
+                      <div>
+                        <p className="text-sm text-gray-600">Server Hostname</p>
+                        <p className="font-medium">{(systemInfo as any).serverHostname}</p>
+                      </div>
+                    </div>
+
+                    {(systemInfo as any).serverPlatform && (
+                      <div className="flex items-start gap-3">
+                        <Monitor className="w-5 h-5 text-gray-400 mt-0.5" suppressHydrationWarning />
+                        <div>
+                          <p className="text-sm text-gray-600">Server Platform</p>
+                          <p className="font-medium">{(systemInfo as any).serverPlatform} ({(systemInfo as any).serverArchitecture || 'unknown'})</p>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
               )}
