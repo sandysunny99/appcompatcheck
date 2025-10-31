@@ -8,7 +8,9 @@ export default function AnalyticsPage() {
     <div className="container mx-auto px-4 py-16">
       <div className="max-w-4xl mx-auto">
         <div className="text-center mb-12">
-          <BarChart3 className="h-16 w-16 mx-auto mb-4 text-blue-500" />
+          <div suppressHydrationWarning>
+            <BarChart3 className="h-16 w-16 mx-auto mb-4 text-blue-500" />
+          </div>
           <h1 className="text-4xl font-bold mb-4">Advanced Analytics & Reporting</h1>
           <p className="text-xl text-muted-foreground">
             Get actionable insights from your compatibility scans and security audits
@@ -18,7 +20,9 @@ export default function AnalyticsPage() {
         <div className="grid gap-6 md:grid-cols-2 mb-12">
           <Card>
             <CardHeader>
-              <TrendingUp className="h-8 w-8 text-green-500 mb-2" />
+              <div suppressHydrationWarning>
+                <TrendingUp className="h-8 w-8 text-green-500 mb-2" />
+              </div>
               <CardTitle>Trend Analysis</CardTitle>
             </CardHeader>
             <CardContent>
@@ -30,7 +34,9 @@ export default function AnalyticsPage() {
 
           <Card>
             <CardHeader>
-              <PieChart className="h-8 w-8 text-purple-500 mb-2" />
+              <div suppressHydrationWarning>
+                <PieChart className="h-8 w-8 text-purple-500 mb-2" />
+              </div>
               <CardTitle>Custom Dashboards</CardTitle>
             </CardHeader>
             <CardContent>
@@ -42,7 +48,9 @@ export default function AnalyticsPage() {
 
           <Card>
             <CardHeader>
-              <Activity className="h-8 w-8 text-orange-500 mb-2" />
+              <div suppressHydrationWarning>
+                <Activity className="h-8 w-8 text-orange-500 mb-2" />
+              </div>
               <CardTitle>Real-Time Monitoring</CardTitle>
             </CardHeader>
             <CardContent>
@@ -54,7 +62,9 @@ export default function AnalyticsPage() {
 
           <Card>
             <CardHeader>
-              <BarChart3 className="h-8 w-8 text-blue-500 mb-2" />
+              <div suppressHydrationWarning>
+                <BarChart3 className="h-8 w-8 text-blue-500 mb-2" />
+              </div>
               <CardTitle>Export Reports</CardTitle>
             </CardHeader>
             <CardContent>

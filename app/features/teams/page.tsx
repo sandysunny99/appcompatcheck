@@ -8,7 +8,9 @@ export default function TeamManagementPage() {
     <div className="container mx-auto px-4 py-16">
       <div className="max-w-4xl mx-auto">
         <div className="text-center mb-12">
-          <Users className="h-16 w-16 mx-auto mb-4 text-blue-500" />
+          <div suppressHydrationWarning>
+            <Users className="h-16 w-16 mx-auto mb-4 text-blue-500" />
+          </div>
           <h1 className="text-4xl font-bold mb-4">Team Management</h1>
           <p className="text-xl text-muted-foreground">
             Collaborate seamlessly with multi-tenant organization management
@@ -18,7 +20,9 @@ export default function TeamManagementPage() {
         <div className="grid gap-6 md:grid-cols-2 mb-12">
           <Card>
             <CardHeader>
-              <UserPlus className="h-8 w-8 text-blue-500 mb-2" />
+              <div suppressHydrationWarning>
+                <UserPlus className="h-8 w-8 text-blue-500 mb-2" />
+              </div>
               <CardTitle>Easy Onboarding</CardTitle>
             </CardHeader>
             <CardContent>
@@ -30,7 +34,9 @@ export default function TeamManagementPage() {
 
           <Card>
             <CardHeader>
-              <Settings className="h-8 w-8 text-purple-500 mb-2" />
+              <div suppressHydrationWarning>
+                <Settings className="h-8 w-8 text-purple-500 mb-2" />
+              </div>
               <CardTitle>Role-Based Access</CardTitle>
             </CardHeader>
             <CardContent>
@@ -42,7 +48,9 @@ export default function TeamManagementPage() {
 
           <Card>
             <CardHeader>
-              <BarChart3 className="h-8 w-8 text-green-500 mb-2" />
+              <div suppressHydrationWarning>
+                <BarChart3 className="h-8 w-8 text-green-500 mb-2" />
+              </div>
               <CardTitle>Team Analytics</CardTitle>
             </CardHeader>
             <CardContent>
@@ -54,7 +62,9 @@ export default function TeamManagementPage() {
 
           <Card>
             <CardHeader>
-              <Users className="h-8 w-8 text-orange-500 mb-2" />
+              <div suppressHydrationWarning>
+                <Users className="h-8 w-8 text-orange-500 mb-2" />
+              </div>
               <CardTitle>Multi-Organization</CardTitle>
             </CardHeader>
             <CardContent>
