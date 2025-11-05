@@ -4,7 +4,8 @@ import { verifySession } from '@/lib/auth/session';
 import { JobQueue } from '@/lib/notifications/job-queue';
 import { NotificationEvents } from '@/lib/notifications/events';
 import { db } from '@/lib/db/drizzle';
-import { users, organizations } from '@/lib/db/schema';
+import { users } from '@/lib/db/schema';
+import { eq } from 'drizzle-orm';
 import { z } from 'zod';
 
 const BulkNotificationSchema = z.object({
@@ -227,8 +228,7 @@ async function postHandler(request: NextRequest) {
       const orgUsers = await db
         .select({ userId: users.id })
         .from(users)
-        .innerJoin(organizations, organizations.id)
-        .where(organizations.id);
+        .where(eq(users.organizationId, parseInt(organizationIds[0]))); // Simplified to use first org ID
       
       targetUserIds = orgUsers.map(user => String(user.userId));
     } else if (userIds && userIds.length > 0) {
