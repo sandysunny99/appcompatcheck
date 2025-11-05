@@ -13,7 +13,7 @@ export default async function AdminPage() {
   }
 
   // Check if user has admin system permission
-  if (!hasPermission(session.user.role, Permission.ADMIN_SYSTEM)) {
+  if (!hasPermission(session, Permission.ADMIN_SYSTEM)) {
     redirect('/dashboard');
   }
 

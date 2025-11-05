@@ -221,7 +221,7 @@ async function postHandler(request: NextRequest) {
     // Get target user IDs based on the request
     if (allUsers) {
       const allUsersResult = await db.select({ id: users.id }).from(users);
-      targetUserIds = allUsersResult.map(user => user.id);
+      targetUserIds = allUsersResult.map(user => String(user.id));
     } else if (organizationIds && organizationIds.length > 0) {
       // Get all users from specified organizations
       const orgUsers = await db
@@ -230,7 +230,7 @@ async function postHandler(request: NextRequest) {
         .innerJoin(organizations, organizations.id)
         .where(organizations.id);
       
-      targetUserIds = orgUsers.map(user => user.userId);
+      targetUserIds = orgUsers.map(user => String(user.userId));
     } else if (userIds && userIds.length > 0) {
       targetUserIds = userIds;
     } else {
