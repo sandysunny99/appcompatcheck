@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Link from 'next/link';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { 
@@ -61,31 +62,35 @@ export function AdminDashboard({ userId, userRole }: AdminDashboardProps) {
         <TabsContent value="overview" className="space-y-6">
           {/* Quick Links to Monitoring */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-6">
-            <Card className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => window.location.href = '/admin/monitoring'}>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">System Monitoring</CardTitle>
-                <Activity className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">Live</div>
-                <p className="text-xs text-muted-foreground">
-                  Real-time system metrics and alerts
-                </p>
-              </CardContent>
-            </Card>
+            <Link href="/admin/monitoring">
+              <Card className="hover:shadow-lg transition-shadow cursor-pointer">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">System Monitoring</CardTitle>
+                  <Activity className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">Live</div>
+                  <p className="text-xs text-muted-foreground">
+                    Real-time system metrics and alerts
+                  </p>
+                </CardContent>
+              </Card>
+            </Link>
 
-            <Card className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => window.location.href = '/admin/audit'}>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Audit Logs</CardTitle>
-                <FileText className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">Active</div>
-                <p className="text-xs text-muted-foreground">
-                  Security events and compliance reports
-                </p>
-              </CardContent>
-            </Card>
+            <Link href="/admin/audit">
+              <Card className="hover:shadow-lg transition-shadow cursor-pointer">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Audit Logs</CardTitle>
+                  <FileText className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">Active</div>
+                  <p className="text-xs text-muted-foreground">
+                    Security events and compliance reports
+                  </p>
+                </CardContent>
+              </Card>
+            </Link>
 
             <Card className="border-yellow-200 bg-yellow-50">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">

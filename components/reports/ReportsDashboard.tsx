@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -64,6 +65,7 @@ interface ReportsDashboardProps {
 }
 
 export function ReportsDashboard({ userId, organizationId }: ReportsDashboardProps) {
+  const router = useRouter();
   const [scans, setScans] = useState<ScanSummary[]>([]);
   const [recentActivity, setRecentActivity] = useState<ReportActivity[]>([]);
   const [loading, setLoading] = useState(true);
@@ -105,8 +107,8 @@ export function ReportsDashboard({ userId, organizationId }: ReportsDashboardPro
 
   const handleViewReport = async (scan: ScanSummary) => {
     try {
-      // Navigate to the scan results page
-      window.location.href = `/scan/results?session=${scan.sessionId}`;
+      // Navigate to the scan results page using Next.js router
+      router.push(`/scan/results?session=${scan.sessionId}`);
     } catch (error) {
       console.error('Failed to view report:', error);
     }

@@ -1,0 +1,113 @@
+{
+  "metadata": {
+    "reportId": "RPT-1761937782905",
+    "reportType": "comprehensive",
+    "generatedAt": "2025-10-31T19:09:42.905Z",
+    "generatedBy": 2,
+    "hostname": "clackyai-machine",
+    "version": "1.0.0"
+  },
+  "filters": {
+    "userId": 2,
+    "organizationId": 0
+  },
+  "summary": {
+    "totalScans": 156,
+    "totalIssues": 42,
+    "criticalIssues": 5,
+    "highPriorityIssues": 12,
+    "mediumPriorityIssues": 18,
+    "lowPriorityIssues": 7,
+    "resolvedIssues": 28,
+    "openIssues": 14,
+    "scanSuccessRate": 94.2,
+    "averageScanTime": "2.5 minutes"
+  },
+  "data": {
+    "scans": [
+      {
+        "scanId": "SCN-001",
+        "scanDate": "2025-10-31T19:09:42.905Z",
+        "status": "completed",
+        "duration": "2m 30s",
+        "issuesFound": 8,
+        "filesScanned": 245,
+        "linesAnalyzed": 12450
+      },
+      {
+        "scanId": "SCN-002",
+        "scanDate": "2025-10-30T19:09:42.905Z",
+        "status": "completed",
+        "duration": "2m 15s",
+        "issuesFound": 5,
+        "filesScanned": 230,
+        "linesAnalyzed": 11800
+      }
+    ],
+    "issues": [
+      {
+        "issueId": "ISS-001",
+        "severity": "critical",
+        "category": "security",
+        "title": "SQL Injection Vulnerability",
+        "file": "database.ts",
+        "line": 142,
+        "description": "Unsanitized user input in SQL query",
+        "status": "open"
+      },
+      {
+        "issueId": "ISS-002",
+        "severity": "high",
+        "category": "compatibility",
+        "title": "Deprecated API Usage",
+        "file": "api/auth.ts",
+        "line": 89,
+        "description": "Using deprecated authentication method",
+        "status": "open"
+      }
+    ],
+    "trends": {
+      "issuesByDay": [
+        {
+          "date": "2024-01-20",
+          "count": 15
+        },
+        {
+          "date": "2024-01-21",
+          "count": 12
+        },
+        {
+          "date": "2024-01-22",
+          "count": 8
+        }
+      ],
+      "scansByDay": [
+        {
+          "date": "2024-01-20",
+          "count": 24
+        },
+        {
+          "date": "2024-01-21",
+          "count": 28
+        },
+        {
+          "date": "2024-01-22",
+          "count": 32
+        }
+      ]
+    }
+  },
+  "statistics": {
+    "codeQualityScore": 87.5,
+    "securityScore": 92.3,
+    "compatibilityScore": 89.1,
+    "performanceScore": 91.8,
+    "overallScore": 90.2,
+    "comparisonToPreviousReport": {
+      "codeQuality": 2.3,
+      "security": 1.5,
+      "compatibility": -0.8,
+      "performance": 3.2
+    }
+  }
+}

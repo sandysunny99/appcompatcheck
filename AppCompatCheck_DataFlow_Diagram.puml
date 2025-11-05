@@ -1,0 +1,448 @@
+@startuml AppCompatCheck_System_DataFlow
+!define BLUE #4A90E2
+!define BLACK #2C3E50
+!define ORANGE #F39C12
+!define GREEN #27AE60
+!define GRAY #95A5A6
+!define RED #E74C3C
+
+title AppCompatCheck - Enterprise Compatibility Analysis Platform\nSystem Data Flow Diagram
+
+skinparam backgroundColor white
+skinparam defaultFontName Arial
+skinparam defaultFontSize 11
+skinparam ArrowThickness 2
+skinparam RoundCorner 10
+skinparam Shadowing false
+
+' ==============================================================================
+' LEGEND
+' ==============================================================================
+legend right
+  |= Color |= Component Type |
+  | <#4A90E2> | Client Layer (User Interface) |
+  | <#2C3E50> | Application Layer (Core Logic) |
+  | <#F39C12> | Services Layer (External Services) |
+  | <#27AE60> | Data Layer (Persistent Storage) |
+  | <#95A5A6> | External Systems (Actors) |
+  
+  |= Arrow Type |= Meaning |
+  | -> | Standard data flow |
+  | ->> | Async/Event-driven flow |
+  | ..> | Conditional/Optional flow |
+  | ==> | Secure/Encrypted flow |
+endlegend
+
+' ==============================================================================
+' EXTERNAL ACTORS (GRAY)
+' ==============================================================================
+actor "End User" as User GRAY
+actor "System Admin" as Admin GRAY
+actor "External API\nConsumer" as API_Consumer GRAY
+cloud "CI/CD\nSystems" as CICD GRAY
+cloud "Webhook\nEndpoints" as Webhooks GRAY
+
+' ==============================================================================
+' CLIENT LAYER (BLUE)
+' ==============================================================================
+package "Client Layer" BLUE {
+  component "Web Browser" as Browser {
+    [Next.js React App] as NextJSApp
+    [User Dashboard UI] as UserDashboard
+    [Admin Dashboard\n(Falcon Style)] as AdminDashboard
+    [Scan Interface] as ScanUI
+    [Reports Dashboard] as ReportsUI
+    [File Upload\nComponent] as FileUpload
+    [WebSocket Client] as WSClient
+  }
+}
+
+' ==============================================================================
+' APPLICATION LAYER (BLACK)
+' ==============================================================================
+package "Application Layer" BLACK {
+  
+  ' API Gateway & Security
+  rectangle "API Gateway & Security" {
+    [Next.js\nMiddleware] as Middleware
+    [Rate Limiting] as RateLimit
+    [CSRF Protection] as CSRF
+    [Security Headers] as SecHeaders
+  }
+  
+  ' Authentication & Authorization
+  rectangle "Auth & Session Management" {
+    [JWT Handler] as JWT
+    [Session Manager] as SessionMgr
+    [Account Lockout] as Lockout
+    [Password Policy] as PasswordPolicy
+    [RBAC Service] as RBAC
+  }
+  
+  ' API Routes
+  rectangle "API Routes" {
+    [Auth API\n/api/auth/*] as AuthAPI
+    [Upload API\n/api/upload] as UploadAPI
+    [Scan API\n/api/scan] as ScanAPI
+    [Reports API\n/api/reports/*] as ReportsAPI
+    [Admin API\n/api/admin/*] as AdminAPI
+    [Webhooks API\n/api/webhooks/*] as WebhooksAPI
+  }
+  
+  ' Core Business Logic
+  rectangle "Core Services" {
+    [File Handler] as FileHandler
+    [Compatibility\nAnalysis Engine] as AnalysisEngine
+    [ML Analyzer] as MLAnalyzer
+    [Pattern Matcher] as PatternMatcher
+    [Report Generator] as ReportGen
+    [Notification Service] as NotificationSvc
+  }
+  
+  ' Integration Services
+  rectangle "Integration Services" {
+    [Integration\nManager] as IntegrationMgr
+    [GitHub Integration] as GitHubInt
+    [Jira Integration] as JiraInt
+    [Snyk Integration] as SnykInt
+  }
+  
+  ' Data Management
+  rectangle "Data Management" {
+    [Multi-tenancy\nService] as MultiTenancy
+    [Activity Logger] as ActivityLog
+    [Security Logger] as SecurityLog
+    [Audit Logger] as AuditLog
+  }
+}
+
+' ==============================================================================
+' SERVICES LAYER (ORANGE)
+' ==============================================================================
+package "Services Layer" ORANGE {
+  database "Redis Cache" as Redis {
+    [Session Store] as SessionStore
+    [Rate Limit Store] as RateLimitStore
+    [Cache Manager] as CacheMgr
+  }
+  
+  component "Email Service" as EmailSvc {
+    [SMTP Server] as SMTP
+    [Email Templates] as EmailTemplates
+  }
+  
+  component "Real-time Services" as RealTime {
+    [WebSocket Server] as WSServer
+    [Event Queue] as EventQueue
+  }
+  
+  component "External Integrations" as ExtInt {
+    [Slack API] as SlackAPI
+    [Teams API] as TeamsAPI
+    [GitHub API] as GitHubAPI
+    [Jira API] as JiraAPI
+    [Snyk API] as SnykAPI
+  }
+}
+
+' ==============================================================================
+' DATA LAYER (GREEN)
+' ==============================================================================
+package "Data Layer" GREEN {
+  database "PostgreSQL\nDatabase" as PostgreSQL {
+    [Users Table] as UsersTable
+    [Organizations Table] as OrgsTable
+    [Scans Table] as ScansTable
+    [Reports Table] as ReportsTable
+    [Scan Results Table] as ResultsTable
+    [Activity Logs Table] as ActivityLogsTable
+    [Security Events Table] as SecurityEventsTable
+    [Integrations Table] as IntegrationsTable
+    [Notifications Table] as NotificationsTable
+    [API Keys Table] as APIKeysTable
+    [Webhooks Table] as WebhooksTable
+  }
+  
+  storage "File Storage" as FileStorage {
+    [Uploaded Files] as UploadedFiles
+    [Generated Reports] as GeneratedReports
+    [Export Files] as ExportFiles
+  }
+}
+
+' ==============================================================================
+' PRIMARY USER AUTHENTICATION FLOW
+' ==============================================================================
+User ==> Browser : "HTTPS Request"
+Browser -> NextJSApp : "Navigate to /sign-in"
+NextJSApp -> AuthAPI : "POST /api/auth/login\n{email, password}"
+
+AuthAPI -> Middleware : "Request\nValidation"
+Middleware -> RateLimit : "Check\nRate Limits"
+RateLimit -> RateLimitStore : "Get Request\nCount"
+RateLimitStore --> RateLimit : "Count Data"
+Middleware -> CSRF : "Validate\nCSRF Token"
+Middleware -> SecHeaders : "Apply Security\nHeaders"
+
+AuthAPI -> JWT : "Validate\nCredentials"
+JWT -> UsersTable : "Query User\nby Email"
+UsersTable --> JWT : "User Record"
+JWT -> PasswordPolicy : "Verify Password"
+PasswordPolicy --> JWT : "Password Valid"
+JWT -> Lockout : "Check Account\nLockout"
+Lockout --> JWT : "Not Locked"
+
+JWT -> SessionMgr : "Create Session"
+SessionMgr -> SessionStore : "Store Session\nData"
+SessionMgr --> JWT : "Session Token"
+
+JWT -> ActivityLog : "Log Sign-in\nActivity"
+ActivityLog -> ActivityLogsTable : "INSERT Activity"
+
+JWT --> AuthAPI : "JWT Token +\nSession ID"
+AuthAPI --> NextJSApp : "Success Response\n{token, user}"
+NextJSApp --> Browser : "Redirect to\n/dashboard"
+Browser --> User : "Display\nDashboard"
+
+' ==============================================================================
+' FILE UPLOAD & SCAN FLOW
+' ==============================================================================
+User -> FileUpload : "Select File\nfor Analysis"
+FileUpload -> UploadAPI : "POST /api/upload\n{file, metadata}"
+
+UploadAPI -> Middleware : "Authenticate &\nAuthorize"
+Middleware -> SessionMgr : "Verify Session"
+SessionMgr -> SessionStore : "Get Session"
+SessionStore --> SessionMgr : "Session Data"
+SessionMgr -> RBAC : "Check Permission\nSCAN_CREATE"
+RBAC --> SessionMgr : "Permission\nGranted"
+
+UploadAPI -> FileHandler : "Process Upload"
+FileHandler -> MultiTenancy : "Validate Tenant\nIsolation"
+MultiTenancy -> OrgsTable : "Check Org Limits"
+OrgsTable --> MultiTenancy : "Quota Available"
+
+FileHandler -> FileStorage : "Store File"
+FileStorage --> FileHandler : "File Path"
+
+FileHandler -> AnalysisEngine : "Start Analysis"
+AnalysisEngine -> ScansTable : "CREATE Scan\nRecord"
+AnalysisEngine -> WSServer : "Send Progress\nUpdate"
+WSServer ->> WSClient : "Scan Started\nEvent"
+WSClient ->> ScanUI : "Update UI"
+
+AnalysisEngine -> PatternMatcher : "Extract Patterns"
+AnalysisEngine -> MLAnalyzer : "ML Feature\nExtraction"
+MLAnalyzer -> CacheMgr : "Get Historical\nData"
+CacheMgr --> MLAnalyzer : "Historical\nAnalysis"
+
+MLAnalyzer --> AnalysisEngine : "Risk Score &\nInsights"
+PatternMatcher --> AnalysisEngine : "Detected\nPatterns"
+
+AnalysisEngine -> ResultsTable : "INSERT Scan\nResults"
+AnalysisEngine -> ScansTable : "UPDATE Scan\nStatus"
+
+AnalysisEngine -> NotificationSvc : "Send Completion\nNotification"
+NotificationSvc -> NotificationsTable : "CREATE\nNotification"
+NotificationSvc ..> EmailSvc : "Send Email\n(if configured)"
+EmailSvc ..> SMTP : "Send Email"
+NotificationSvc ..> SlackAPI : "Post to Slack\n(if integrated)"
+
+AnalysisEngine -> WSServer : "Scan Complete\nEvent"
+WSServer ->> WSClient : "Analysis\nComplete"
+WSClient ->> ScanUI : "Show Results"
+
+' ==============================================================================
+' REPORT GENERATION FLOW
+' ==============================================================================
+User -> ReportsUI : "Request Report"
+ReportsUI -> ReportsAPI : "POST /api/reports/generate\n{scanId, format}"
+
+ReportsAPI -> Middleware : "Authenticate"
+Middleware -> SessionMgr : "Verify Session"
+ReportsAPI -> RBAC : "Check Permission\nREPORT_CREATE"
+
+ReportsAPI -> ReportGen : "Generate Report"
+ReportGen -> ScansTable : "Query Scan Data"
+ScansTable --> ReportGen : "Scan Metadata"
+ReportGen -> ResultsTable : "Query Results"
+ResultsTable --> ReportGen : "Analysis Results"
+ReportGen -> UsersTable : "Query User Info"
+UsersTable --> ReportGen : "User Details"
+
+ReportGen -> ReportGen : "Format Report\n(PDF/Excel/CSV)"
+ReportGen -> FileStorage : "Save Report File"
+FileStorage --> ReportGen : "Report URL"
+
+ReportGen -> ReportsTable : "INSERT Report\nRecord"
+ReportGen --> ReportsAPI : "Report Metadata\n+ Download URL"
+ReportsAPI --> ReportsUI : "Report Ready"
+ReportsUI --> User : "Download Report"
+
+' ==============================================================================
+' ADMIN MONITORING FLOW
+' ==============================================================================
+Admin ==> AdminDashboard : "Access Admin\nPanel"
+AdminDashboard -> AdminAPI : "GET /api/admin/monitoring"
+
+AdminAPI -> Middleware : "Authenticate\n& Authorize"
+AdminAPI -> RBAC : "Check ADMIN\nPermission"
+RBAC -> UsersTable : "Verify Admin\nRole"
+UsersTable --> RBAC : "Role: ADMIN"
+
+AdminAPI -> ScansTable : "Query System\nMetrics"
+AdminAPI -> ActivityLogsTable : "Query Activity\nLogs"
+AdminAPI -> SecurityEventsTable : "Query Security\nEvents"
+AdminAPI -> OrgsTable : "Query Org\nStatistics"
+
+ScansTable --> AdminAPI : "Scan Metrics"
+ActivityLogsTable --> AdminAPI : "Activity Data"
+SecurityEventsTable --> AdminAPI : "Security Alerts"
+OrgsTable --> AdminAPI : "Org Stats"
+
+AdminAPI -> AuditLog : "Log Admin\nAccess"
+AuditLog -> ActivityLogsTable : "INSERT Audit\nRecord"
+
+AdminAPI --> AdminDashboard : "Dashboard Data"
+AdminDashboard --> Admin : "Display Metrics\n& Alerts"
+
+' ==============================================================================
+' INTEGRATION & WEBHOOK FLOW
+' ==============================================================================
+CICD -> WebhooksAPI : "POST /api/webhooks/integrations/{id}\n{event, payload}"
+
+WebhooksAPI -> Middleware : "Validate\nWebhook Secret"
+WebhooksAPI -> IntegrationMgr : "Handle Webhook"
+IntegrationMgr -> IntegrationsTable : "Get Integration\nConfig"
+IntegrationsTable --> IntegrationMgr : "Config & Credentials"
+
+IntegrationMgr -> GitHubInt : "Process GitHub\nEvent"
+GitHubInt -> GitHubAPI : "Fetch Repo Data"
+GitHubAPI --> GitHubInt : "Repository Info"
+GitHubInt -> ScanAPI : "Trigger Scan"
+
+ScanAPI -> AnalysisEngine : "Start Automated\nScan"
+AnalysisEngine -> ScansTable : "CREATE Scan"
+
+AnalysisEngine --> IntegrationMgr : "Scan Results"
+IntegrationMgr -> JiraInt : "Create Ticket\nfor Issues"
+JiraInt -> JiraAPI : "POST Issue"
+JiraAPI --> JiraInt : "Issue Created"
+JiraInt -> IntegrationsTable : "UPDATE Sync\nStatus"
+
+IntegrationMgr -> Webhooks : "Send Results\nCallback"
+Webhooks --> CICD : "Analysis\nComplete"
+
+' ==============================================================================
+' REAL-TIME MONITORING FLOW
+' ==============================================================================
+UserDashboard -> WSClient : "Connect WebSocket"
+WSClient -> WSServer : "WS Connection"
+WSServer -> SessionStore : "Validate Session"
+SessionStore --> WSServer : "Session Valid"
+
+loop Real-time Updates
+  AnalysisEngine ->> WSServer : "Progress Update"
+  NotificationSvc ->> WSServer : "New Notification"
+  SecurityLog ->> WSServer : "Security Alert"
+  
+  WSServer ->> EventQueue : "Queue Event"
+  EventQueue ->> WSClient : "Push Event"
+  WSClient ->> UserDashboard : "Update UI"
+end
+
+' ==============================================================================
+' SECURITY MONITORING FLOW
+' ==============================================================================
+RateLimit -> SecurityLog : "Rate Limit\nExceeded"
+Lockout -> SecurityLog : "Account Locked"
+CSRF -> SecurityLog : "CSRF Attempt\nDetected"
+
+SecurityLog -> SecurityEventsTable : "INSERT Security\nEvent"
+SecurityLog -> NotificationSvc : "Alert Admin"
+NotificationSvc -> NotificationsTable : "CREATE Alert"
+NotificationSvc ..> TeamsAPI : "Send Teams\nAlert"
+
+AdminDashboard -> SecurityEventsTable : "Query Security\nEvents"
+SecurityEventsTable --> AdminDashboard : "Security Alerts"
+
+' ==============================================================================
+' EXTERNAL API FLOW
+' ==============================================================================
+API_Consumer ==> AdminAPI : "API Request\nwith API Key"
+AdminAPI -> Middleware : "Validate API Key"
+Middleware -> APIKeysTable : "Verify Key"
+APIKeysTable --> Middleware : "Key Valid"
+Middleware -> RBAC : "Check API\nPermissions"
+
+AdminAPI -> ScansTable : "Query Data"
+ScansTable --> AdminAPI : "Scan Data"
+AdminAPI -> APIKeysTable : "UPDATE Last\nUsed"
+AdminAPI ==> API_Consumer : "API Response"
+
+' ==============================================================================
+' MULTI-TENANCY DATA ISOLATION FLOW
+' ==============================================================================
+note right of MultiTenancy
+  **Multi-Tenancy Enforcement**
+  - All data queries filtered by organizationId
+  - Row-level security for data isolation
+  - Organization quotas and limits enforced
+  - Cross-tenant access prevented via RBAC
+end note
+
+MultiTenancy -> OrgsTable : "Validate\nOrganization"
+MultiTenancy -> UsersTable : "Check User-Org\nRelationship"
+MultiTenancy -> ScansTable : "Apply Org\nFilter"
+MultiTenancy -> ReportsTable : "Apply Org\nFilter"
+
+' ==============================================================================
+' DATA BACKUP & RETENTION FLOW
+' ==============================================================================
+note bottom of FileStorage
+  **Data Management**
+  - Automated backups every 24 hours
+  - 90-day retention for scan results
+  - GDPR-compliant data deletion
+  - Export to S3/Azure Blob (optional)
+end note
+
+' ==============================================================================
+' NOTES
+' ==============================================================================
+
+note top of AnalysisEngine
+  **AI-Powered Analysis**
+  - Pattern matching with RegEx
+  - ML-based risk scoring
+  - Historical trend analysis
+  - Confidence scoring (0-1)
+end note
+
+note top of Middleware
+  **Security Layers**
+  - Rate Limiting (100 req/15min)
+  - CSRF Double-Submit Cookie
+  - Progressive Account Lockout
+  - Comprehensive Security Headers
+  - OWASP Top 10 Protection
+end note
+
+note bottom of PostgreSQL
+  **Database Indexes**
+  - All foreign keys indexed
+  - Timestamp columns indexed
+  - Status/type columns indexed
+  - Full-text search enabled
+  - Query optimization active
+end note
+
+note bottom of Redis
+  **Caching Strategy**
+  - Session TTL: 24 hours
+  - Rate limit TTL: 15 minutes
+  - Analysis cache: 1 hour
+  - Automatic cache invalidation
+end note
+
+@enduml
