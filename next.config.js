@@ -107,7 +107,8 @@ const nextConfig = {
   },
 
   // Output configuration for different deployment targets
-  output: 'standalone',
+  // Use 'standalone' for Docker/self-hosting, or remove for Vercel
+  output: process.env.BUILD_STANDALONE === 'true' ? 'standalone' : undefined,
 
   // Webpack configuration
   webpack: (config, { buildId, dev, isServer, defaultLoaders, webpack }) => {
@@ -138,6 +139,13 @@ const nextConfig = {
     },
   },
 
+  // Performance optimizations
+  compress: true,
+  poweredByHeader: false,
+  
+  // Production source maps for debugging
+  productionBrowserSourceMaps: false,
+  
   // Allow cross-origin requests in development
   allowedDevOrigins: process.env.NODE_ENV === 'development' 
     ? ['3000-5e95f2683bef-web.clackypaas.com']
