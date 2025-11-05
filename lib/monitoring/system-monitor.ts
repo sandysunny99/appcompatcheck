@@ -672,5 +672,3 @@ export class MetricsCollector {
     }
   }
 }
-
-export { MetricsCollector };

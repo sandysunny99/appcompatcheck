@@ -592,5 +592,3 @@ export class DatabaseMaintenanceScheduler {
     }
   }
 }
-
-export { DatabaseOptimization, OptimizedQueryBuilder, DatabaseHealthMonitor, DatabaseMaintenanceScheduler };
