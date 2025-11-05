@@ -123,7 +123,7 @@ const signUpSchema = z.object({
   path: ['confirmPassword'],
 });
 
-export const signUp = validatedAction(signUpSchema, async (data, formData) => {
+export const signUp = validatedAction(signUpSchema, async (data, _formData) => {
   const { email, password, confirmPassword } = data;
 
   try {
@@ -327,7 +327,7 @@ const forgotPasswordSchema = z.object({
 
 export const forgotPassword = validatedAction(
   forgotPasswordSchema,
-  async (data, formData) => {
+  async (data, _formData) => {
     const { email } = data;
 
     try {
