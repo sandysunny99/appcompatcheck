@@ -301,7 +301,8 @@ export const updateAccount = validatedActionWithUser(
       .where(eq(users.email, email))
       .limit(1);
 
-    if (existingUser.length > 0 && existingUser[0].id !== user.id) {
+    const existingUserRecord = existingUser[0];
+    if (existingUserRecord && existingUserRecord.id !== user.id) {
       return {
         name,
         email,
@@ -346,6 +347,13 @@ export const forgotPassword = validatedAction(
       }
 
       const user = foundUser[0];
+      
+      if (!user) {
+        return {
+          success:
+            'If an account with that email exists, we have sent a password reset link.'
+        };
+      }
 
       // Generate reset token (random string)
       const resetToken = crypto.randomBytes(32).toString('hex');
@@ -395,7 +403,7 @@ const resetPasswordSchema = z.object({
 
 export const resetPassword = validatedAction(
   resetPasswordSchema,
-  async (data, formData) => {
+  async (data, _formData) => {
     const { token, password, confirmPassword } = data;
 
     try {
@@ -428,6 +436,15 @@ export const resetPassword = validatedAction(
       }
 
       const user = foundUser[0];
+      
+      if (!user) {
+        return {
+          error: 'User not found.',
+          token,
+          password,
+          confirmPassword
+        };
+      }
 
       // Hash new password
       const newPasswordHash = await hashPassword(password);
